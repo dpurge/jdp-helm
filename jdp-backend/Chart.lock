@@ -1,0 +1,9 @@
+dependencies:
+- name: sealed-secrets
+  repository: https://bitnami-labs.github.io/sealed-secrets
+  version: 2.11.0
+- name: argo-workflows
+  repository: https://argoproj.github.io/argo-helm
+  version: 0.32.1
+digest: sha256:76ecc166c6af0b605ee5b6d31cdccc65c39f9dff80a0821838fc587bfdd028fb
+generated: "2023-08-07T01:35:18.5417464+02:00"

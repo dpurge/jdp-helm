@@ -1,0 +1,6 @@
+# sealed-secrets:
+
+argo-workflows:
+  server:
+    extraArgs:
+    - --auth-mode=server
