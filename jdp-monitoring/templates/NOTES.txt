@@ -1,0 +1,17 @@
+# Prometheus
+
+```sh
+kubectl port-forward service/prometheus-server 80:80 --namespace {{ .Values.namespace }}
+```
+
+# Grafana
+
+```sh
+kubectl get secret --namespace {{ .Values.namespace }} grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+kubectl port-forward service/grafana 3000:80 --namespace {{ .Values.namespace }}
+```
+
+- Log into Grafana and navigate to `Configuration > Data Sources`.
+- Add a new Prometheus data source.
+- Set the URL to `http://prometheus-server`.
+- Save and test the connection.

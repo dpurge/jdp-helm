@@ -1,0 +1,14 @@
+prometheus:
+  server:
+    persistentVolume:
+      size: 1Gi
+  alertmanager:
+    persistentVolume:
+      size: 1Gi
+
+grafana:
+  persistence:
+    enabled: true
+    size: 1Gi
+  service:
+    type: LoadBalancer

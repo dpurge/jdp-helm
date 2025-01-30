@@ -1,0 +1,17 @@
+apiVersion: v2
+name: jdp-monitoring
+description: JDP monitoring tools - prometheus, grafana, loki, alertmanager, custom exporters
+
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+
+- name: prometheus
+  version: 27.1.0
+  repository: https://prometheus-community.github.io/helm-charts
+
+- name: grafana
+  version: 8.8.5
+  repository: https://grafana.github.io/helm-charts
