@@ -12,8 +12,8 @@ sudo dnf install helm
 ```sh
 helm create example
 helm package example
-mv example-0.1.0.tgz charts
-helm repo index charts --url https://dpurge.github.com/jdp-helm
+mv example-0.1.0.tgz docs
+helm repo index docs --url https://dpurge.github.com/jdp-helm
 ```
 
 ## Managing resources
