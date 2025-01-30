@@ -13,7 +13,7 @@ sudo dnf install helm
 helm create example
 helm package example
 mv example-0.1.0.tgz docs
-helm repo index docs --url https://dpurge.github.com/jdp-helm
+helm repo index docs --url https://dpurge.github.io/jdp-helm/
 ```
 
 ## Managing resources
