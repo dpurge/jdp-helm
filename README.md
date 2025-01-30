@@ -1,6 +1,20 @@
 # jdp-helm
 
-Helm charts for my home lab
+Helm charts for my home lab.
+
+## Developing
+
+```sh
+sudo dnf install kubernetes1.32-client
+sudo dnf install helm
+```
+
+```sh
+helm create example
+helm package example
+mv example-0.1.0.tgz charts
+helm repo index charts --url https://dpurge.github.com/jdp-helm
+```
 
 ## Managing resources
 
