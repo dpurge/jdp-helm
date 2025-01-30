@@ -3,7 +3,7 @@ entries:
   jdp-monitoring:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2025-01-30T21:53:59.6259712+01:00"
+    created: "2025-01-30T22:06:40.3875837+01:00"
     dependencies:
     - name: prometheus
       repository: https://prometheus-community.github.io/helm-charts
@@ -13,10 +13,10 @@ entries:
       version: 8.8.5
     description: JDP monitoring tools - prometheus, grafana, loki, alertmanager, custom
       exporters
-    digest: 6246a87a5274c8d66237c630bcabd33f73869a856cce0f82a711accc64731a01
+    digest: 43f5a29dc500df6538dc5eba570143804d043367f9b0d7bd11892dafac3dbecc
     name: jdp-monitoring
     type: application
     urls:
     - https://dpurge.github.io/jdp-helm/jdp-monitoring-0.1.0.tgz
     version: 0.1.0
-generated: "2025-01-30T21:53:59.6167043+01:00"
+generated: "2025-01-30T22:06:40.3782927+01:00"

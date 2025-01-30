@@ -1,29 +1,29 @@
----
+# ---
 
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: kube-state-metrics
-  labels:
-    release: prometheus
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: kube-state-metrics
-  endpoints:
-  - port: http-metrics
+# apiVersion: monitoring.coreos.com/v1
+# kind: ServiceMonitor
+# metadata:
+#   name: kube-state-metrics
+#   labels:
+#     release: prometheus
+# spec:
+#   selector:
+#     matchLabels:
+#       app.kubernetes.io/name: kube-state-metrics
+#   endpoints:
+#   - port: http-metrics
 
----
+# ---
 
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: prometheus
-rules:
-- apiGroups: [""]
-  resources:
-  - nodes
-  - services
-  - endpoints
-  - pods
-  verbs: ["get", "list", "watch"]
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   name: prometheus
+# rules:
+# - apiGroups: [""]
+#   resources:
+#   - nodes
+#   - services
+#   - endpoints
+#   - pods
+#   verbs: ["get", "list", "watch"]
