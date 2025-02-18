@@ -1,6 +1,11 @@
+nfs:
+  replicas: 1
+  server: 192.168.10.3
+  path: /Kubernetes
+
 # sealed-secrets:
 
-argo-workflows:
-  server:
-    extraArgs:
-    - --auth-mode=server
+# argo-workflows:
+#   server:
+#     extraArgs:
+#     - --auth-mode=server

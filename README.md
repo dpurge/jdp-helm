@@ -22,8 +22,11 @@ helm repo index docs --url https://dpurge.github.io/jdp-helm
 From local filesystem:
 
 ```sh
+kubectl create namespace backend
+helm install jdp-backend jdp-backend/ --values jdp-backend/values.yaml --namespace backend
+
 kubectl create namespace monitoring
-helm install jdp-monitoring jdp-monitoring/ --values jdp-monitoring/values.yaml -f jdp-monitoring/values-prod.yaml --namespace monitoring
+helm install jdp-monitoring jdp-monitoring/ --values jdp-monitoring/values.yaml --namespace monitoring
 ```
 
 From repository:
@@ -33,8 +36,14 @@ helm repo add jdp-helm https://dpurge.github.io/jdp-helm
 helm repo update
 
 kubectl create namespace monitoring
-helm install jdp-monitoring jdp-helm/jdp-monitoring -f custom-values.yaml --namespace monitoring
+helm install --name jdp-monitoring jdp-helm/jdp-monitoring -f custom-values.yaml --namespace monitoring
 helm upgrade jdp-monitoring jdp-helm/jdp-monitoring --namespace monitoring
+```
+
+Uninstall:
+
+```sh
+helm uninstall jdp-monitoring -n monitoring
 ```
 
 ## Managing resources

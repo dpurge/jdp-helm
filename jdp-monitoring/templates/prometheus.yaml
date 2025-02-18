@@ -1,29 +1,135 @@
-# ---
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Chart.Name }}-prometheus-server-conf"
+  labels:
+    name: prometheus-server-conf
+  namespace: {{ .Release.Namespace }}
+data:
+  prometheus.rules: |-
+    groups:
+      - name: Node Memory is too high
+        rules:
+          - alert: High Node Memory
+            expr: container_memory_working_set_bytes > 7.8e9
+            for: 15m
+  prometheus.yml: |-
+    global:
+      scrape_interval: 15m
+      evaluation_interval: 15m
+    rule_files:
+      - /etc/prometheus/prometheus.rules
+    alerting:
+      alertmanagers:
+        - scheme: http
+          static_configs:
+            - targets:
+              - "{{ .Chart.Name }}-alertmanager:9093"
+    scrape_configs:
+      - job_name: 'node-cadvisor'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+        metric_relabel_configs:
+          - source_labels: [__name__,id]
+            regex: container_memory_working_set_bytes;/$
+            action: keep
 
-# apiVersion: monitoring.coreos.com/v1
-# kind: ServiceMonitor
-# metadata:
-#   name: kube-state-metrics
-#   labels:
-#     release: prometheus
-# spec:
-#   selector:
-#     matchLabels:
-#       app.kubernetes.io/name: kube-state-metrics
-#   endpoints:
-#   - port: http-metrics
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Chart.Name }}-prometheus"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3.2.0
+          args:
+            - "--storage.tsdb.retention.time=24h"
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus/"
+            - '--web.enable-lifecycle'
+          ports:
+            - containerPort: 9090
+          resources:
+            requests:
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: prometheus-config-volume
+              mountPath: /etc/prometheus/
+            - name: prometheus-storage-volume
+              mountPath: /prometheus/
+      volumes:
+        - name: prometheus-config-volume
+          configMap:
+            defaultMode: 420
+            name: "{{ .Chart.Name }}-prometheus-server-conf"
+        - name: prometheus-storage-volume
+          emptyDir:
+            sizeLimit: 50Mi
 
-# ---
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Chart.Name }}-prometheus"
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: prometheus
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
 
-# apiVersion: rbac.authorization.k8s.io/v1
-# kind: ClusterRole
-# metadata:
-#   name: prometheus
-# rules:
-# - apiGroups: [""]
-#   resources:
-#   - nodes
-#   - services
-#   - endpoints
-#   - pods
-#   verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: "{{ .Chart.Name }}-prometheus"
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/proxy
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "{{ .Chart.Name }}-prometheus"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: "{{ .Chart.Name }}-prometheus"
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: {{ .Release.Namespace }}

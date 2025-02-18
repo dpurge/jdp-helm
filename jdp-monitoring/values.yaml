@@ -10,5 +10,8 @@ grafana:
   persistence:
     enabled: true
     size: 1Gi
-  service:
-    type: LoadBalancer
+  # ingress:
+  #   enabled: true
+  #   path: /*
+  # service:
+  #   type: LoadBalancer
