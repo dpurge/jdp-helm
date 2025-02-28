@@ -1,17 +1,11 @@
 prometheus:
-  server:
-    persistentVolume:
-      size: 1Gi
-  alertmanager:
-    persistentVolume:
-      size: 1Gi
+  version: v3.2.0
+  hostname: prometheus.home.arpa
+
+alertmanager:
+  version: v0.28.0
+  hostname: alertmanager.home.arpa
 
 grafana:
-  persistence:
-    enabled: true
-    size: 1Gi
-  # ingress:
-  #   enabled: true
-  #   path: /*
-  # service:
-  #   type: LoadBalancer
+  version: 5.4.3
+  hostname: grafana.home.arpa

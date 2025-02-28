@@ -1,4 +1,5 @@
 ---
+
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -23,6 +24,7 @@ data:
               credentials: "EXAMPLE-ON-CALL-API-KEY"
 
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -41,7 +43,7 @@ spec:
     spec:
       containers:
       - name: alertmanager
-        image: prom/alertmanager:v0.28.0
+        image: prom/alertmanager:{{ .Values.alertmanager.version }}
         args:
           - "--config.file=/etc/alertmanager/config.yml"
           - "--storage.path=/alertmanager"
@@ -65,6 +67,7 @@ spec:
         emptyDir: {}
 
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -77,3 +80,21 @@ spec:
   ports:
     - port: 9093
       targetPort: 9093
+
+---
+
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: "{{ .Chart.Name }}-alertmanager"
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.alertmanager.hostname }}`)
+      services:
+        - kind: Service
+          name: "{{ .Chart.Name }}-alertmanager"
+          port: 9093
