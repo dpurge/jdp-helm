@@ -24,11 +24,11 @@ spec:
     volumes:
       - name: workspace
         hostPath:
-          path: {{ .Values.youtube.workspace }}
+          path: {{ `"{{workflow.parameters.workspace}}"`}}
           type: Directory
       - name: video
         hostPath:
-          path: {{ .Values.youtube.video }}
+          path: {{`"{{workflow.parameters.video}}"`}}
           type: Directory
     templates:
       - name: main
@@ -38,7 +38,7 @@ spec:
             template: youtube-download
       - name: youtube-download
         script:
-          image: {{ .Values.youtube.image }}
+          image: {{`"{{workflow.parameters.image}}"`}}
           workingDir: /workspace
           volumeMounts:
             - mountPath: /workspace
