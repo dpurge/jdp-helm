@@ -6,9 +6,13 @@ nfs:
 workflows:
   hostname: workflows.home.arpa
 
-# sealed-secrets:
+argo-workflows:
+  server:
+    authModes:
+    - server
+  controller:
+    workflowNamespaces:
+    - workflow
 
-# argo-workflows:
-#   server:
-#     extraArgs:
-#     - --auth-mode=server
+
+# sealed-secrets:

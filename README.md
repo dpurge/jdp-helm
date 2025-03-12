@@ -24,6 +24,7 @@ From local filesystem:
 ```sh
 kubectl create namespace backend
 helm install jdp-backend jdp-backend/ --values jdp-backend/values.yaml --namespace backend
+helm upgrade jdp-backend jdp-backend/ --values jdp-backend/values.yaml --namespace backend
 
 kubectl create namespace monitoring
 helm install jdp-monitoring jdp-monitoring/ --values jdp-monitoring/values.yaml --namespace monitoring

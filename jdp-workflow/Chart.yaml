@@ -1,0 +1,7 @@
+apiVersion: v2
+name: jdp-workflow
+description: JDP workflow jobs 
+
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

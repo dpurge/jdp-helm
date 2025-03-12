@@ -1,0 +1,7 @@
+workflows:
+  role: jdp-backend-argo-workflows-workflow
+
+youtube:
+  image: jauderho/yt-dlp:2025.02.19
+  workspace: /mnt/jdpnas01/AppData/workflows/youtube
+  video: /mnt/jdpnas01/Multimedia/video/YouTube

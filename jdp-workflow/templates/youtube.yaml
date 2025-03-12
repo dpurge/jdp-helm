@@ -1,0 +1,71 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: "{{ .Chart.Name }}-youtube"
+spec:
+  schedule: "0 3 * * *"
+  timezone: "Europe/Warsaw"
+  startingDeadlineSeconds: 0
+  concurrencyPolicy: "Replace"      # Default to "Allow"
+  successfulJobsHistoryLimit: 2     # Default 3
+  failedJobsHistoryLimit: 1         # Default 1
+  suspend: false                    # Set to "true" to suspend scheduling
+  workflowSpec:
+    entrypoint: main
+    arguments:
+      parameters:
+        - name: image
+          value: {{ .Values.youtube.image }}
+        - name: workspace
+          value: {{ .Values.youtube.workspace }}
+        - name: video
+          value: {{ .Values.youtube.video }}
+    volumes:
+      - name: workspace
+        hostPath:
+          path: {{ .Values.youtube.workspace }}
+          type: Directory
+      - name: video
+        hostPath:
+          path: {{ .Values.youtube.video }}
+          type: Directory
+    templates:
+      - name: main
+        dag:
+          tasks:
+          - name: download
+            template: youtube-download
+      - name: youtube-download
+        script:
+          image: {{ .Values.youtube.image }}
+          workingDir: /workspace
+          volumeMounts:
+            - mountPath: /workspace
+              name: workspace
+            - mountPath: /video
+              name: video
+          command:
+            - sh
+          source: |
+            set -e
+
+            workspace="/workspace"
+            video="/video"
+            cfg="config.txt"
+            
+            for i in $(find $workspace -type f -name $cfg)
+            do
+              cd $(dirname $i)
+              echo "===== $i ====="
+              yt-dlp --config-location $cfg || true
+              for d in */ ; do
+                [ "${d}" = "*/" ] && continue
+                mkdir -p "${video}/${PWD##*/}/${d}"
+                for f in ${d}*; do
+                  echo "Move: ${f}"
+                  mv -f "${f}" "${video}/${PWD##*/}/${f}" || continue
+                done
+                rmdir "${d%'/*'}" || continue
+              done
+            done
