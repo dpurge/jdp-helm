@@ -1,0 +1,86 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: "{{ .Chart.Name }}-workflows-role"
+  namespace: {{ .Release.Namespace }}
+rules:
+  # k8s standard APIs
+  - apiGroups:
+      - ""
+    resources:
+      - events
+      - pods
+      - pods/log
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - eventsources
+      - sensors
+      - workflows
+      - workfloweventbindings
+      - workflowtemplates
+      - clusterworkflowtemplates
+      - cronworkflows
+      - workflowtaskresults
+    verbs:
+      - create
+      - delete
+      - update
+      - patch
+      - get
+      - list
+      - watch
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Chart.Name }}-workflows-sa"
+  namespace: {{ .Release.Namespace }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "{{ .Chart.Name }}-workflows-rolebinding"
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: "{{ .Chart.Name }}-workflows-role"
+subjects:
+- kind: ServiceAccount
+  name: "{{ .Chart.Name }}-workflows-sa"
+  namespace: {{ .Release.Namespace }}
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "{{ .Chart.Name }}-workflows-secret"
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    kubernetes.io/service-account.name: "{{ .Chart.Name }}-workflows-sa"
+type: kubernetes.io/service-account-token
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: "{{ .Chart.Name }}-workflows"
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.workflows.hostname }}`)
+      services:
+        - kind: Service
+          name: "{{ .Chart.Name }}-argo-workflows-server"
+          port: 2746
