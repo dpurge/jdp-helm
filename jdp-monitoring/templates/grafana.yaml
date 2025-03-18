@@ -1,9 +1,8 @@
 ---
-
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: "{{ .Chart.Name }}-grafana-storage"
+  name: "{{ .Chart.Name }}-grafana-data"
   namespace: {{ .Release.Namespace }}
 spec:
   storageClassName: nfs
@@ -14,44 +13,42 @@ spec:
       storage: 100Mi
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: "{{ .Chart.Name }}-grafana"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: grafana
+    app: "{{ .Chart.Name }}-grafana"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: grafana
+      app: "{{ .Chart.Name }}-grafana"
   template:
     metadata:
       labels:
-        app: grafana
+        app: "{{ .Chart.Name }}-grafana"
     spec:
       containers:
       - name: grafana
         image: "{{ .Values.grafana.image }}"
         volumeMounts:
-          - name: "{{ .Chart.Name }}-grafana-storage"
+          - name: "{{ .Chart.Name }}-grafana-data"
             mountPath: /var/lib/grafana
         ports:
         - containerPort: 3000
           name: http
       volumes:
-        - name: "{{ .Chart.Name }}-grafana-storage"
+        - name: "{{ .Chart.Name }}-grafana-data"
           persistentVolumeClaim:
-            claimName: "{{ .Chart.Name }}-grafana-storage"
+            claimName: "{{ .Chart.Name }}-grafana-data"
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
         fsGroup: 472
 
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -60,14 +57,13 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: grafana
+    app: "{{ .Chart.Name }}-grafana"
   ports:
     - protocol: TCP
       port: 3000
       targetPort: 3000
 
 ---
-
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:

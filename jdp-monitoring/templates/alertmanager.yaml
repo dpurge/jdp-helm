@@ -1,9 +1,8 @@
 ---
-
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: "{{ .Chart.Name }}-alertmanager-config"
+  name: "{{ .Chart.Name }}-alertmanager"
   namespace: {{ .Release.Namespace }}
 data:
   config.yml: |-
@@ -24,7 +23,6 @@ data:
               credentials: "EXAMPLE-ON-CALL-API-KEY"
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,12 +32,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alertmanager
+      app: "{{ .Chart.Name }}-alertmanager"
   template:
     metadata:
       name: "{{ .Chart.Name }}-alertmanager"
       labels:
-        app: alertmanager
+        app: "{{ .Chart.Name }}-alertmanager"
     spec:
       containers:
       - name: alertmanager
@@ -55,19 +53,18 @@ spec:
             limits:
               memory: 32Mi
         volumeMounts:
-        - name: config-volume
+        - name: "{{ .Chart.Name }}-alertmanager-config"
           mountPath: /etc/alertmanager
-        - name: alertmanager
+        - name: "{{ .Chart.Name }}-alertmanager-data"
           mountPath: /alertmanager
       volumes:
-      - name: config-volume
+      - name: "{{ .Chart.Name }}-alertmanager-config"
         configMap:
-          name: "{{ .Chart.Name }}-alertmanager-config"
-      - name: alertmanager
+          name: "{{ .Chart.Name }}-alertmanager"
+      - name: "{{ .Chart.Name }}-alertmanager-data"
         emptyDir: {}
 
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -75,14 +72,13 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
-    app: alertmanager
+    app: "{{ .Chart.Name }}-alertmanager"
   type: ClusterIP
   ports:
     - port: 9093
       targetPort: 9093
 
 ---
-
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
