@@ -1,0 +1,23 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: "{{ .Chart.Name }}-postgres"
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterIP: None
+  ports:
+  - port: {{ .Values.postgres.port }}
+
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: "{{ .Chart.Name }}-postgres"
+  namespace: {{ .Release.Namespace }}
+subsets:
+  - addresses:
+        - ip: {{ .Values.postgres.ip }}
+    ports:
+      - port: {{ .Values.postgres.port }}
+        name: "{{ .Chart.Name }}-postgres"

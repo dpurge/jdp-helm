@@ -1,0 +1,113 @@
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: "{{ .Chart.Name }}-pgadmin"
+  namespace: {{ .Release.Namespace }}
+data:
+  pgadmin-password: {{ .Values.pgadmin.password }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Chart.Name }}-pgadmin"
+  namespace: {{ .Release.Namespace }}
+data:
+  servers.json: |
+    {
+      "Servers": {
+        "1": {
+          "Name": "PostgreSQL",
+          "Group": "Servers",
+          "Port": {{ .Values.postgres.port }},
+          "Username": "{{ .Values.postgres.user }}",
+          "Host": "{{ .Chart.Name }}-postgres",
+          "SSLMode": "prefer",
+          "MaintenanceDB": "postgres"
+        }
+      }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Chart.Name }}-pgadmin"
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Chart.Name }}-pgadmin"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Chart.Name }}-pgadmin"
+    spec:
+      containers:
+        - name: pgadmin
+          image: {{ .Values.pgadmin.image }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          env:
+            - name: PGADMIN_DEFAULT_EMAIL
+              value: {{ .Values.pgadmin.user }}
+            - name: PGADMIN_DEFAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Chart.Name }}-pgadmin"
+                  key: pgadmin-password
+          # resources:
+          #   requests:
+          #     memory: 16Mi
+          #   limits:
+          #     memory: 32Mi
+          volumeMounts:
+          - name: "{{ .Chart.Name }}-pgadmin-config"
+            mountPath: /pgadmin4/servers.json
+            subPath: servers.json
+            readOnly: true
+          - name: "{{ .Chart.Name }}-pgadmin-data"
+            mountPath: /var/lib/pgadmin
+      volumes:
+      - name: "{{ .Chart.Name }}-pgadmin-config"
+        configMap:
+          name: "{{ .Chart.Name }}-pgadmin"
+      - name: "{{ .Chart.Name }}-pgadmin-data"
+        emptyDir:
+          sizeLimit: 10Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Chart.Name }}-pgadmin"
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: "{{ .Chart.Name }}-pgadmin"
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: "{{ .Chart.Name }}-pgadmin"
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.pgadmin.hostname }}`)
+      services:
+        - kind: Service
+          name: "{{ .Chart.Name }}-pgadmin"
+          port: 80

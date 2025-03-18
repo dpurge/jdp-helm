@@ -33,8 +33,8 @@ spec:
         app: grafana
     spec:
       containers:
-      - name: "{{ .Chart.Name }}-grafana"
-        image: grafana/grafana:{{ .Values.grafana.version }}
+      - name: grafana
+        image: "{{ .Values.grafana.image }}"
         volumeMounts:
           - name: "{{ .Chart.Name }}-grafana-storage"
             mountPath: /var/lib/grafana

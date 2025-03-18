@@ -28,6 +28,12 @@ helm upgrade jdp-backend jdp-backend/ --values jdp-backend/values.yaml --namespa
 
 kubectl create namespace monitoring
 helm install jdp-monitoring jdp-monitoring/ --values jdp-monitoring/values.yaml --namespace monitoring
+helm upgrade jdp-monitoring jdp-monitoring/ --values jdp-monitoring/values.yaml --namespace monitoring
+helm uninstall jdp-monitoring --namespace monitoring --dry-run
+
+kubectl create namespace data
+helm install jdp-data jdp-data/ --values jdp-data/values.yaml --namespace data
+helm upgrade jdp-data jdp-data/ --values jdp-data/values.yaml --namespace data
 ```
 
 From repository:

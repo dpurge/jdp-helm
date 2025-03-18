@@ -1,0 +1,10 @@
+postgres:
+  ip: 192.168.10.23
+  port: 5432
+  user: admin
+
+pgadmin:
+  image: dpage/pgadmin4
+  user: pgadmin@example.com
+  password: cGdhZG1pbg==
+  hostname: pgadmin.home.arpa

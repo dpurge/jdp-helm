@@ -43,7 +43,7 @@ spec:
     spec:
       containers:
       - name: alertmanager
-        image: prom/alertmanager:{{ .Values.alertmanager.version }}
+        image: "{{ .Values.alertmanager.image }}"
         args:
           - "--config.file=/etc/alertmanager/config.yml"
           - "--storage.path=/alertmanager"

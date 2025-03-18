@@ -1,0 +1,7 @@
+apiVersion: v2
+name: jdp-data
+description: JDP data services - registry, pgsql, nats, minio, qdrant
+
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
