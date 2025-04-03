@@ -24,7 +24,7 @@ spec:
     volumes:
       - name: workspace
         hostPath:
-          path: {{ `"{{workflow.parameters.workspace}}"`}}
+          path: {{`"{{workflow.parameters.workspace}}"`}}
           type: Directory
       - name: video
         hostPath:

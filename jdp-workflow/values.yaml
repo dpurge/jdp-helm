@@ -5,3 +5,11 @@ youtube:
   image: jauderho/yt-dlp:2025.02.19
   workspace: /mnt/jdpnas01/AppData/workflows/youtube
   video: /mnt/jdpnas01/Multimedia/video/YouTube
+
+flashcards:
+  image: registry.home.arpa:5000/jdp-buildenv:2024-06-27
+  repo: "https://github.com/dpurge/jdp-flashcards.git"
+  branch: main
+  source: src
+  dist: dist
+  artifacts: /mnt/jdpnas01/AppData/workflows/flashcards

@@ -1,0 +1,102 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: "{{ .Chart.Name }}-flashcards"
+spec:
+  schedule: "05 3 * * *"
+  timezone: "Europe/Warsaw"
+  startingDeadlineSeconds: 0
+  concurrencyPolicy: "Replace"      # Default to "Allow"
+  successfulJobsHistoryLimit: 2     # Default 3
+  failedJobsHistoryLimit: 1         # Default 1
+  suspend: true                     # Set to "true" to suspend scheduling
+  workflowSpec:
+    entrypoint: main
+    arguments:
+      parameters:
+        - name: image
+          value: {{ .Values.flashcards.image }}
+        - name: repo
+          value: {{ .Values.flashcards.repo }}
+        - name: branch
+          value: {{ .Values.flashcards.branch }}
+        - name: source
+          value: {{ .Values.flashcards.source }}
+        - name: dist
+          value: {{ .Values.flashcards.dist }}
+        - name: artifacts
+          value: {{ .Values.flashcards.artifacts }}
+    volumes:
+      - name: artifacts
+        hostPath:
+          path: {{`"{{workflow.parameters.artifacts}}"`}}
+          type: Directory
+    templates:
+      - name: main
+        steps:
+          - - name: build
+              template: build
+          - - name: publish
+              template: publish
+      - name: build
+        inputs:
+          artifacts:
+          - name: source
+            path: /workspace/{{`{{workflow.parameters.source}}`}}
+            git:
+              repo: {{`"{{workflow.parameters.repo}}"`}}
+              revision: main
+              # sshPrivateKeySecret:
+              #   name: workflow-secrets
+              #   key: github-key
+              # insecureIgnoreHostKey: true
+              usernameSecret:
+                name: workflow-secrets
+                key: github-username
+              passwordSecret:
+                name: workflow-secrets
+                key: github-password
+        script:
+          image: {{`"{{workflow.parameters.image}}"`}}
+          workingDir: /workspace/{{`{{workflow.parameters.source}}`}}
+          # env:
+          #   - name: GitHubPAT
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: workflow-secrets
+          #         key: github-token
+          command:
+            - bash
+          source: |
+            task build-all
+            mv out /workspace/{{`{{workflow.parameters.dist}}`}}
+            cd ..
+            rm -rf {{`{{workflow.parameters.source}}`}}
+          volumeMounts:
+            - mountPath: /workspace
+              name: workspace
+      - name: publish
+        script:
+          image: {{`"{{workflow.parameters.image}}"`}}
+          workingDir: /workspace
+          command:
+            - bash
+          source: |
+            mv /workspace/{{`{{workflow.parameters.dist}}`}}/*.apkg /artifacts/
+            rm -Rf /workspace/{{`{{workflow.parameters.dist}}`}}
+            ls -la /artifacts
+          volumeMounts:
+            - mountPath: /workspace
+              name: workspace
+            - mountPath: /artifacts
+              name: artifacts
+    volumeClaimTemplates:
+      - name: workspace
+        metadata:
+          name: workspace
+        spec:
+          accessModes: [ "ReadWriteOnce" ]
+          resources:
+            requests:
+              storage: 500Mi

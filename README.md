@@ -34,6 +34,10 @@ helm uninstall jdp-monitoring --namespace monitoring --dry-run
 kubectl create namespace data
 helm install jdp-data jdp-data/ --values jdp-data/values.yaml --namespace data
 helm upgrade jdp-data jdp-data/ --values jdp-data/values.yaml --namespace data
+
+kubectl create namespace workflow
+helm install jdp-workflow jdp-workflow/ --values jdp-workflow/values.yaml --namespace workflow
+helm upgrade jdp-workflow jdp-workflow/ --values jdp-workflow/values.yaml --namespace workflow
 ```
 
 From repository:
