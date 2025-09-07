@@ -5,6 +5,9 @@ type: Opaque
 metadata:
   name: "{{ .Chart.Name }}-pgadmin"
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-pgadmin"
+    component: secrets
 data:
   pgadmin-password: {{ .Values.pgadmin.password }}
 
@@ -14,6 +17,9 @@ kind: ConfigMap
 metadata:
   name: "{{ .Chart.Name }}-pgadmin"
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-pgadmin"
+    component: configmap
 data:
   servers.json: |
     {
@@ -36,15 +42,16 @@ kind: Deployment
 metadata:
   name: "{{ .Chart.Name }}-pgadmin"
   namespace: {{ .Release.Namespace }}
+  labels: &labels
+    app: "{{ .Chart.Name }}-pgadmin"
+    component: deployment
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app: "{{ .Chart.Name }}-pgadmin"
+    matchLabels: *labels
   template:
     metadata:
-      labels:
-        app: "{{ .Chart.Name }}-pgadmin"
+      labels: *labels
     spec:
       containers:
         - name: pgadmin
@@ -87,9 +94,13 @@ kind: Service
 metadata:
   name: "{{ .Chart.Name }}-pgadmin"
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-pgadmin"
+    component: service
 spec:
   selector:
     app: "{{ .Chart.Name }}-pgadmin"
+    component: deployment
   ports:
     - protocol: TCP
       port: 80
@@ -101,6 +112,9 @@ kind: IngressRoute
 metadata:
   name: "{{ .Chart.Name }}-pgadmin"
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-pgadmin"
+    component: ingress
 spec:
   entryPoints:
     - web

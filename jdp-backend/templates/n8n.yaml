@@ -1,0 +1,121 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Chart.Name }}-n8n"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-n8n"
+    component: configmap
+data:
+  NODE_ENV: "production"
+  GENERIC_TIMEZONE: {{ .Values.n8n.timezone }}
+  WEBHOOK_TUNNEL_URL: "http://{{ .Values.n8n.hostname }}/"
+  DB_TYPE: "postgresdb"
+  DB_POSTGRESDB_USER: {{ .Values.n8n.dbuser }}
+  DB_POSTGRESDB_DATABASE: {{ .Values.n8n.dbname }}
+  DB_POSTGRESDB_HOST: {{ .Values.n8n.dbhost }}
+  DB_POSTGRESDB_PORT: "{{ .Values.n8n.dbport }}"
+  N8N_BASIC_AUTH_ACTIVE: "true"
+  N8N_BASIC_AUTH_USER: {{ .Values.n8n.user }}
+  N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+  N8N_SECURE_COOKIE: "false"
+
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: "{{ .Chart.Name }}-n8n"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-n8n"
+    component: secrets
+stringData:
+  DB_POSTGRESDB_PASSWORD: {{ .Values.n8n.dbpassword }}
+  N8N_BASIC_AUTH_PASSWORD: {{ .Values.n8n.password }}
+  N8N_ENCRYPTION_KEY: {{ .Values.n8n.cryptokey }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Chart.Name }}-n8n"
+  namespace: {{ .Release.Namespace }}
+  labels: &labels
+    app: "{{ .Chart.Name }}-n8n"
+    component: deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+      - name: n8n
+        image: {{ .Values.n8n.image }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 5678
+        envFrom:
+        - configMapRef:
+            name: "{{ .Chart.Name }}-n8n"
+        - secretRef:
+            name: "{{ .Chart.Name }}-n8n"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+        resources:
+          limits:
+            cpu: "1.0"
+            memory: "1024Mi"
+          requests:
+            cpu: "0.5"
+            memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Chart.Name }}-n8n"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-n8n"
+    component: service
+spec:
+  selector:
+    app: "{{ .Chart.Name }}-n8n"
+    component: deployment
+  ports:
+  - protocol: TCP
+    name: http
+    port: 80
+    targetPort: 5678
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: "{{ .Chart.Name }}-n8n"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-n8n"
+    component: ingress
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.n8n.hostname }}`)
+      services:
+        - kind: Service
+          name: "{{ .Chart.Name }}-n8n"
+          port: 80

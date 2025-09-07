@@ -14,5 +14,17 @@ argo-workflows:
     workflowNamespaces:
     - workflow
 
+n8n:
+  timezone: Europe/Warsaw
+  hostname: n8n.home.arpa
+  dbuser: n8n
+  dbpassword: n8n
+  dbname: n8n
+  dbhost: jdp-data-postgres.data.svc.cluster.local
+  dbport: 5432
+  cryptokey: n8n
+  user: n8n
+  password: n8n
+  image: n8nio/n8n:latest
 
 # sealed-secrets:
