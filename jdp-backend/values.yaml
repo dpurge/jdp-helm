@@ -15,6 +15,7 @@ argo-workflows:
     - workflow
 
 n8n:
+  image: n8nio/n8n:1.111.0
   timezone: Europe/Warsaw
   hostname: n8n.home.arpa
   dbuser: n8n
@@ -25,6 +26,9 @@ n8n:
   cryptokey: n8n
   user: n8n
   password: n8n
-  image: n8nio/n8n:latest
+
+ollama:
+  image: ollama/ollama:0.11.10
+  model: deepseek-r1:8b
 
 # sealed-secrets:

@@ -1,0 +1,103 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ .Chart.Name }}-ollama-data"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-ollama"
+    component: pvc
+spec:
+  storageClassName: nfs
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Chart.Name }}-ollama"
+  namespace: {{ .Release.Namespace }}
+  labels: &labels
+    app: "{{ .Chart.Name }}-ollama"
+    component: deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+      - name: ollama
+        image: {{ .Values.ollama.image }}
+        ports:
+        - containerPort: 11434
+        env:
+        - name: OLLAMA_HOST
+          value: "0.0.0.0"
+        volumeMounts:
+        - name: "{{ .Chart.Name }}-ollama-data"
+          mountPath: /root/.ollama
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "16Gi"
+            cpu: "4000m"
+      volumes:
+      - name: "{{ .Chart.Name }}-ollama-data"
+        persistentVolumeClaim:
+          claimName: "{{ .Chart.Name }}-ollama-data"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Chart.Name }}-ollama"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-ollama"
+    component: service
+spec:
+  selector:
+    app: "{{ .Chart.Name }}-ollama"
+    component: deployment
+  ports:
+    - protocol: TCP
+      port: 11434
+      targetPort: 11434
+
+# ---
+# apiVersion: batch/v1
+# kind: Job
+# metadata:
+#   name: "{{ .Chart.Name }}-ollama-model-loader"
+#   namespace: {{ .Release.Namespace }}
+# spec:
+#   template:
+#     spec:
+#       containers:
+#       - name: model-loader
+#         image: curlimages/curl:latest
+#         command:
+#         - sh
+#         - -c
+#         - |
+#           # Wait for Ollama
+#           until curl -f http://{{ .Chart.Name }}-ollama:11434/api/version; do
+#             echo "Waiting for Ollama..."
+#             sleep 5
+#           done
+          
+#           # Pull models
+#           curl -X POST http://{{ .Chart.Name }}-ollama:11434/api/pull \
+#             -H "Content-Type: application/json" \
+#             -d '{"name": "{{ .Values.ollama.model }}"}'
+#       restartPolicy: OnFailure
+#   backoffLimit: 3
