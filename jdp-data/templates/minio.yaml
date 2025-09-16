@@ -1,0 +1,23 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: "{{ .Chart.Name }}-minio"
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterIP: None
+  ports:
+  - port: {{ .Values.minio.port }}
+
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: "{{ .Chart.Name }}-minio"
+  namespace: {{ .Release.Namespace }}
+subsets:
+  - addresses:
+        - ip: {{ .Values.minio.ip }}
+    ports:
+      - port: {{ .Values.minio.port }}
+        name: "{{ .Chart.Name }}-minio"

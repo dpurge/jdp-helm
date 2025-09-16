@@ -8,3 +8,15 @@ pgadmin:
   user: pgadmin@example.com
   password: cGdhZG1pbg==
   hostname: pgadmin.home.arpa
+
+qdrant:
+  ip: 192.168.10.30
+  port: 6333
+
+nats:
+  ip: 192.168.10.29
+  port: 4222
+
+minio:
+  ip: 192.168.10.28
+  port: 9000

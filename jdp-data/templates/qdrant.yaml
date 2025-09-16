@@ -1,0 +1,23 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: "{{ .Chart.Name }}-qdrant"
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterIP: None
+  ports:
+  - port: {{ .Values.qdrant.port }}
+
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: "{{ .Chart.Name }}-qdrant"
+  namespace: {{ .Release.Namespace }}
+subsets:
+  - addresses:
+        - ip: {{ .Values.qdrant.ip }}
+    ports:
+      - port: {{ .Values.qdrant.port }}
+        name: "{{ .Chart.Name }}-qdrant"

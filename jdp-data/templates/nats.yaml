@@ -1,0 +1,23 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: "{{ .Chart.Name }}-nats"
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterIP: None
+  ports:
+  - port: {{ .Values.nats.port }}
+
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: "{{ .Chart.Name }}-nats"
+  namespace: {{ .Release.Namespace }}
+subsets:
+  - addresses:
+        - ip: {{ .Values.nats.ip }}
+    ports:
+      - port: {{ .Values.nats.port }}
+        name: "{{ .Chart.Name }}-nats"
