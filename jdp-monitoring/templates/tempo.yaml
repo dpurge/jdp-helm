@@ -1,0 +1,74 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Chart.Name }}-tempo"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    name: "{{ .Chart.Name }}-tempo"
+data:
+  tempo.yaml: |-
+    server:
+      http_listen_port: 3200
+
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+
+    distributor:
+      log_received_spans:
+        enabled: true
+        
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Chart.Name }}-tempo"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-tempo"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Chart.Name }}-tempo"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Chart.Name }}-tempo"
+    spec:
+      containers:
+        - name: tempo
+          image: "{{ .Values.tempo.image }}"
+          ports:
+            - http_server: 3200
+            - grpc_receiver: 4317
+            - http_receiver: 4318
+          # resources:
+          #   requests:
+          #     memory: 32Mi
+          #   limits:
+          #     memory: 128Mi
+          volumeMounts:
+            - name: tempo-config
+              mountPath: /etc/
+            - name: tempo-data
+              mountPath: /var/tempo/
+      volumes:
+        - name: tempo-config
+          configMap:
+            defaultMode: 420
+            name: "{{ .Chart.Name }}-tempo"
+        - name: tempo-data
+          emptyDir:
+            sizeLimit: 50Mi

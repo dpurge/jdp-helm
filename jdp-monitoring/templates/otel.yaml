@@ -1,0 +1,89 @@
+# ---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: "{{ .Chart.Name }}-otel"
+#   namespace: {{ .Release.Namespace }}
+#   labels:
+#     name: "{{ .Chart.Name }}-otel"
+# data:
+#   config.yaml: |-
+#     receivers:
+#       otlp:
+#         protocols:
+#           grpc:
+#             endpoint: 0.0.0.0:4317
+#           http:
+#             endpoint: 0.0.0.0:4318
+#     processors:
+#       memory_limiter:
+#         check_interval: 15s
+#         limit_percentage: 90
+#         spike_limit_percentage: 20
+#       batch:
+#         send_batch_max_size: 512
+#         send_batch_size: 256
+#         timeout: 10s
+#     exporters:
+#       otlp/tempo:
+#         endpoint: "http://{{ .Chart.Name }}-tempo:4317"
+#         tls:
+#           insecure: true
+#       prometheusremotewrite:
+#         endpoint: "http://{{ .Chart.Name }}-prometheus:9090/api/v1/write"
+#         tls:
+#           insecure: true
+#           insecure_skip_verify: true
+#     service:
+#       pipelines:
+#         traces:
+#           receivers: [otlp]
+#           processors: [memory_limiter, batch]
+#           exporters: [otlp/tempo]
+#         metrics:
+#           receivers: [otlp]
+#           processors: [batch]
+#           exporters: [prometheusremotewrite]
+
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: "{{ .Chart.Name }}-otel"
+#   namespace: {{ .Release.Namespace }}
+#   labels:
+#     app: "{{ .Chart.Name }}-otel"
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: "{{ .Chart.Name }}-otel"
+#   template:
+#     metadata:
+#       labels:
+#         app: "{{ .Chart.Name }}-otel"
+#     spec:
+#       containers:
+#         - name: opentelemetry-collector
+#           image: "{{ .Values.otel.image }}"
+#           ports:
+#             - grpc: 4317
+#             - http: 4318
+#           # resources:
+#           #   requests:
+#           #     memory: 32Mi
+#           #   limits:
+#           #     memory: 128Mi
+#           volumeMounts:
+#             - name: otel-config
+#               mountPath: /etc/otelcol-contrib/
+#             - name: otel-data
+#               mountPath: /var/otelcol-contrib/
+#       volumes:
+#         - name: otel-config
+#           configMap:
+#             defaultMode: 420
+#             name: "{{ .Chart.Name }}-otel"
+#         - name: otel-data
+#           emptyDir:
+#             sizeLimit: 10Mi

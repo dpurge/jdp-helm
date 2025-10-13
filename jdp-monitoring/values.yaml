@@ -7,5 +7,17 @@ alertmanager:
   hostname: alertmanager.home.arpa
 
 grafana:
-  image: grafana/grafana:5.4.3
+  image: grafana/grafana:10.2.3
   hostname: grafana.home.arpa
+
+# otel:
+#   image: otel/opentelemetry-collector-contrib:0.137.0
+
+alloy:
+  image: ""
+
+tempo:
+  image: ""
+
+loki:
+  image: ""
