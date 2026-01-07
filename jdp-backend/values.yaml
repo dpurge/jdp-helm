@@ -3,6 +3,17 @@ nfs:
   server: 192.168.10.3
   path: /Kubernetes
 
+openbao:
+  image: openbao/openbao:2.4
+  hostname: openbao.home.arpa
+  token: "******"
+  database:
+    username: openbao
+    password: "******"
+    name: openbao
+    host: jdp-data-postgres.data.svc.cluster.local
+    port: 5432
+
 workflows:
   hostname: workflows.home.arpa
 

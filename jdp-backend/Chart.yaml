@@ -9,22 +9,21 @@ appVersion: "0.1.0"
 dependencies:
 
 - name: traefik-crds
-  version: 1.5.0
+  version: 1.13.0
   repository: https://traefik.github.io/charts
 
 - name: traefik
-  version: 34.4.1
+  version: 38.0.1
   repository: https://traefik.github.io/charts
 
-# - name: sealed-secrets
-#   version: 2.11.0
-#   repository: https://bitnami-labs.github.io/sealed-secrets
-
 - name: argo-workflows
-  version: 0.45.11
+  version: 0.46.3
   repository: https://argoproj.github.io/argo-helm
 
 - name: argo-events
-  version: 2.4.13
+  version: 2.4.19
   repository: https://argoproj.github.io/argo-helm
-  
+
+- name: external-secrets
+  version: 1.2.1
+  repository: https://charts.external-secrets.io

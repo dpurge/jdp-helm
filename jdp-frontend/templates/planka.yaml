@@ -1,0 +1,210 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ .Chart.Name }}-planka-user-avatars"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-planka"
+    component: pvc
+spec:
+  storageClassName: nfs
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50M
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ .Chart.Name }}-planka-favicons"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-planka"
+    component: pvc
+spec:
+  storageClassName: nfs
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20M
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ .Chart.Name }}-planka-background-images"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-planka"
+    component: pvc
+spec:
+  storageClassName: nfs
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50M
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ .Chart.Name }}-planka-attachments"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-planka"
+    component: pvc
+spec:
+  storageClassName: nfs
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500M
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Chart.Name }}-planka"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-planka"
+    component: configmap
+data:
+  NODE_ENV: production
+  DEFAULT_LANGUAGE: en-US
+  BASE_URL: "http://{{ .Values.planka.hostname }}"
+  DEFAULT_ADMIN_NAME: Admin
+  TRUST_PROXY: "0"
+
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "{{ .Chart.Name }}-planka"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-planka"
+    component: externalsecret
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: "jdp-backend-secrets"
+    kind: ClusterSecretStore
+  dataFrom:
+  - extract:
+      key: planka
+  target:
+    name: "{{ .Chart.Name }}-planka"
+    creationPolicy: Owner
+    template:
+      engineVersion: v2
+      data:
+        SECRET_KEY: "{{ `{{ index . \"secret-key\" }}` }}"
+        DATABASE_URL: "postgresql://{{ `{{ index . \"database-username\" }}` }}:{{ `{{ index . \"database-password\" }}` }}@{{ .Values.planka.database.host }}:{{ .Values.planka.database.port }}/{{ .Values.planka.database.name }}"
+        DEFAULT_ADMIN_USERNAME: "{{ `{{ index . \"admin-username\" }}` }}"
+        DEFAULT_ADMIN_PASSWORD: "{{ `{{ index . \"admin-password\" }}` }}"
+        DEFAULT_ADMIN_EMAIL: "{{ `{{ index . \"admin-email\" }}` }}"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Chart.Name }}-planka"
+  namespace: "{{ .Release.Namespace }}"
+  labels: &labels
+    app: "{{ .Chart.Name }}-planka"
+    component: deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+      - name: planka
+        image: "{{ .Values.planka.image }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 1337
+        envFrom:
+        - configMapRef:
+            name: "{{ .Chart.Name }}-planka"
+        - secretRef:
+            name: "{{ .Chart.Name }}-planka"
+        volumeMounts:
+        - name: "favicons"
+          mountPath: /app/public/favicons
+        - name: "user-avatars"
+          mountPath: /app/public/user-avatars
+        - name: "background-images"
+          mountPath: /app/public/background-images
+        - name: "attachments"
+          mountPath: /app/private/attachments
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: "favicons"
+        persistentVolumeClaim:
+          claimName: "{{ .Chart.Name }}-planka-favicons"
+      - name: "user-avatars"
+        persistentVolumeClaim:
+          claimName: "{{ .Chart.Name }}-planka-user-avatars"
+      - name: "background-images"
+        persistentVolumeClaim:
+          claimName: "{{ .Chart.Name }}-planka-background-images"
+      - name: "attachments"
+        persistentVolumeClaim:
+          claimName: "{{ .Chart.Name }}-planka-attachments"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Chart.Name }}-planka"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-planka"
+    component: service
+spec:
+  selector:
+    app: "{{ .Chart.Name }}-planka"
+    component: deployment
+  ports:
+  - protocol: TCP
+    name: http
+    port: 80
+    targetPort: 1337
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: "{{ .Chart.Name }}-planka"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-planka"
+    component: ingress
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.planka.hostname }}`)
+      services:
+        - kind: Service
+          name: "{{ .Chart.Name }}-planka"
+          port: 80

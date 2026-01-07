@@ -52,10 +52,10 @@ spec:
               #   key: github-key
               # insecureIgnoreHostKey: true
               usernameSecret:
-                name: workflow-secrets
+                name: "{{ .Chart.Name }}-workflows"
                 key: github-username
               passwordSecret:
-                name: workflow-secrets
+                name: "{{ .Chart.Name }}-workflows"
                 key: github-password
         script:
           image: {{`"{{workflow.parameters.image}}"`}}

@@ -1,18 +1,5 @@
 ---
 apiVersion: v1
-kind: Secret
-type: Opaque
-metadata:
-  name: "{{ .Chart.Name }}-pgadmin"
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app: "{{ .Chart.Name }}-pgadmin"
-    component: secrets
-data:
-  pgadmin-password: {{ .Values.pgadmin.password }}
-
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: "{{ .Chart.Name }}-pgadmin"
@@ -25,16 +12,37 @@ data:
     {
       "Servers": {
         "1": {
-          "Name": "PostgreSQL",
+          "Name": "Homelab",
           "Group": "Servers",
-          "Port": {{ .Values.postgres.port }},
-          "Username": "{{ .Values.postgres.user }}",
-          "Host": "{{ .Chart.Name }}-postgres",
+          "Username": "admin",
+          "Port": {{ .Values.pgadmin.database.port }},
+          "Host": "{{ .Values.pgadmin.database.host }}",
           "SSLMode": "prefer",
           "MaintenanceDB": "postgres"
         }
       }
     }
+
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "{{ .Chart.Name }}-pgadmin"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-pgadmin"
+    component: externalsecret
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: "jdp-backend-secrets"
+    kind: ClusterSecretStore
+  target:
+    name: "{{ .Chart.Name }}-pgadmin"
+    creationPolicy: Owner
+  dataFrom:
+  - extract:
+      key: pgadmin
 
 ---
 apiVersion: apps/v1
@@ -44,7 +52,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels: &labels
     app: "{{ .Chart.Name }}-pgadmin"
-    # component: deployment
+    component: deployment
 spec:
   replicas: 1
   selector:
@@ -62,29 +70,32 @@ spec:
               protocol: TCP
           env:
             - name: PGADMIN_DEFAULT_EMAIL
-              value: {{ .Values.pgadmin.user }}
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Chart.Name }}-pgadmin"
+                  key: admin-email
             - name: PGADMIN_DEFAULT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: "{{ .Chart.Name }}-pgadmin"
-                  key: pgadmin-password
+                  key: admin-password
           # resources:
           #   requests:
           #     memory: 16Mi
           #   limits:
           #     memory: 32Mi
           volumeMounts:
-          - name: "{{ .Chart.Name }}-pgadmin-config"
+          - name: "config"
             mountPath: /pgadmin4/servers.json
             subPath: servers.json
             readOnly: true
-          - name: "{{ .Chart.Name }}-pgadmin-data"
+          - name: "data"
             mountPath: /var/lib/pgadmin
       volumes:
-      - name: "{{ .Chart.Name }}-pgadmin-config"
+      - name: "config"
         configMap:
           name: "{{ .Chart.Name }}-pgadmin"
-      - name: "{{ .Chart.Name }}-pgadmin-data"
+      - name: "data"
         emptyDir:
           sizeLimit: 10Mi
 

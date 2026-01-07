@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: "{{ .Chart.Name }}-workflows-rolebinding"
+  name: "{{ .Chart.Name }}-workflows"
   namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -12,3 +12,24 @@ subjects:
 - kind: ServiceAccount
   name: default
   namespace: {{ .Release.Namespace }}
+
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "{{ .Chart.Name }}-workflows"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-workflows"
+    component: externalsecret
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: "jdp-backend-secrets"
+    kind: ClusterSecretStore
+  target:
+    name: "{{ .Chart.Name }}-workflows"
+    creationPolicy: Owner
+  dataFrom:
+  - extract:
+      key: workflows

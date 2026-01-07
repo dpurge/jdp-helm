@@ -1,15 +1,18 @@
 dependencies:
 - name: traefik-crds
   repository: https://traefik.github.io/charts
-  version: 1.5.0
+  version: 1.13.0
 - name: traefik
   repository: https://traefik.github.io/charts
-  version: 34.4.1
+  version: 38.0.1
 - name: argo-workflows
   repository: https://argoproj.github.io/argo-helm
-  version: 0.45.11
+  version: 0.46.3
 - name: argo-events
   repository: https://argoproj.github.io/argo-helm
-  version: 2.4.13
-digest: sha256:6b3ba4b2487d55e418b68993268f4237dd405ef589c084537b1c20a5cfe25f32
-generated: "2025-03-12T02:23:50.885381+01:00"
+  version: 2.4.19
+- name: external-secrets
+  repository: https://charts.external-secrets.io
+  version: 1.2.1
+digest: sha256:4d0d09c1cedf55dbe6165baf51ebcf652b2b449d760f21b9abdebed3f07f11be
+generated: "2026-01-06T18:00:41.4446702+01:00"

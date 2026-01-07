@@ -23,8 +23,8 @@ From local filesystem:
 
 ```sh
 kubectl create namespace backend
-helm install jdp-backend jdp-backend/ --values jdp-backend/values.yaml --namespace backend
-helm upgrade jdp-backend jdp-backend/ --values jdp-backend/values.yaml --namespace backend
+helm install jdp-backend jdp-backend/ --values jdp-backend/values.yaml --set openbao.database.password=example --set openbao.token=example --namespace backend
+helm upgrade jdp-backend jdp-backend/ --values jdp-backend/values.yaml --set openbao.database.password=example --set openbao.token=example --namespace backend
 
 kubectl create namespace monitoring
 helm install jdp-monitoring jdp-monitoring/ --values jdp-monitoring/values.yaml --namespace monitoring
@@ -38,6 +38,10 @@ helm upgrade jdp-data jdp-data/ --values jdp-data/values.yaml --namespace data
 kubectl create namespace workflow
 helm install jdp-workflow jdp-workflow/ --values jdp-workflow/values.yaml --namespace workflow
 helm upgrade jdp-workflow jdp-workflow/ --values jdp-workflow/values.yaml --namespace workflow
+
+kubectl create namespace frontend
+helm install jdp-frontend jdp-frontend/ --values jdp-frontend/values.yaml --namespace frontend
+helm upgrade jdp-frontend jdp-frontend/ --values jdp-frontend/values.yaml --namespace frontend
 ```
 
 From repository:
@@ -55,6 +59,7 @@ Uninstall:
 
 ```sh
 helm uninstall jdp-monitoring -n monitoring
+helm delete jdp-frontend -n frontend
 ```
 
 ## Managing resources

@@ -1,0 +1,14 @@
+pgadmin:
+  image: dpage/pgadmin4:9.11.0
+  hostname: pgadmin.home.arpa
+  database:
+    host: jdp-data-postgres.data.svc.cluster.local
+    port: 5432
+
+planka:
+  image: ghcr.io/plankanban/planka:2.0.0-rc.4
+  hostname: planka.home.arpa
+  database:
+    name: planka
+    host: jdp-data-postgres.data.svc.cluster.local
+    port: 5432

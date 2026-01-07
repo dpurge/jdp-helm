@@ -3,12 +3,6 @@ postgres:
   port: 5432
   user: admin
 
-pgadmin:
-  image: dpage/pgadmin4
-  user: pgadmin@example.com
-  password: cGdhZG1pbg==
-  hostname: pgadmin.home.arpa
-
 qdrant:
   ip: 192.168.10.30
   port: 6333

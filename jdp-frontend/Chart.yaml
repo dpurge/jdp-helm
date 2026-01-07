@@ -1,0 +1,9 @@
+apiVersion: v2
+name: jdp-frontend
+description: JDP frontend services - web apps 
+
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+# dependencies:
