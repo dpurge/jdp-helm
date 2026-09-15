@@ -2,7 +2,7 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: "{{ .Chart.Name }}-phraseforge"
+  name: "{{ include "phraseforge.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   refreshInterval: 1h
@@ -10,7 +10,7 @@ spec:
     name: jdp-backend-secrets
     kind: ClusterSecretStore
   target:
-    name: "{{ .Chart.Name }}-phraseforge"
+    name: "{{ include "phraseforge.fullname" . }}"
     creationPolicy: Owner
   data:
   - secretKey: PGUSER
@@ -34,10 +34,10 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "{{ .Chart.Name }}-phraseforge-migrate"
+  name: "{{ include "phraseforge.fullname" . }}-migrate"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-phraseforge"
+    app: "{{ include "phraseforge.fullname" . }}"
     component: migration
   annotations:
     # Run as a hook so each release gets a fresh Job (Job spec.template is
@@ -54,7 +54,7 @@ spec:
   template:
     metadata:
       labels:
-        app: "{{ .Chart.Name }}-phraseforge"
+        app: "{{ include "phraseforge.fullname" . }}"
         component: migration
     spec:
       restartPolicy: Never
@@ -71,27 +71,27 @@ spec:
         - name: PGDATABASE
           valueFrom:
             secretKeyRef:
-              name: "{{ .Chart.Name }}-phraseforge"
+              name: "{{ include "phraseforge.fullname" . }}"
               key: PGDATABASE
         - name: PGUSER
           valueFrom:
             secretKeyRef:
-              name: "{{ .Chart.Name }}-phraseforge"
+              name: "{{ include "phraseforge.fullname" . }}"
               key: PGUSER
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
-              name: "{{ .Chart.Name }}-phraseforge"
+              name: "{{ include "phraseforge.fullname" . }}"
               key: PGPASSWORD
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ .Chart.Name }}-phraseforge"
+  name: "{{ include "phraseforge.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels: &labels
-    app: "{{ .Chart.Name }}-phraseforge"
+    app: "{{ include "phraseforge.fullname" . }}"
     component: deployment
 spec:
   replicas: 1
@@ -121,39 +121,44 @@ spec:
         - name: PGDATABASE
           valueFrom:
             secretKeyRef:
-              name: "{{ .Chart.Name }}-phraseforge"
+              name: "{{ include "phraseforge.fullname" . }}"
               key: PGDATABASE
         - name: PGUSER
           valueFrom:
             secretKeyRef:
-              name: "{{ .Chart.Name }}-phraseforge"
+              name: "{{ include "phraseforge.fullname" . }}"
               key: PGUSER
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
-              name: "{{ .Chart.Name }}-phraseforge"
+              name: "{{ include "phraseforge.fullname" . }}"
               key: PGPASSWORD
         - name: BIND_ADDR
           value: 0.0.0.0:8090
         - name: SESSION_KEY
           valueFrom:
             secretKeyRef:
-              name: "{{ .Chart.Name }}-phraseforge"
+              name: "{{ include "phraseforge.fullname" . }}"
               key: PGPASSWORD
         - name: LLM_PROVIDER
           value: openai
         - name: LLM_BASE_URL
           value: {{ .Values.phraseforge.llm.baseUrl | quote }}
+        - name: LLM_MODEL
+          value: {{ .Values.phraseforge.llm.model | quote }}
         - name: LLM_API_KEY
           valueFrom:
             secretKeyRef:
-              name: "{{ .Chart.Name }}-phraseforge"
+              name: "{{ include "phraseforge.fullname" . }}"
               key: LLM_API_KEY
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
           capabilities:
             drop: [ALL]
+        resources:
+          limits:
+            memory: 128Mi
         livenessProbe:
           httpGet:
             path: /health
@@ -173,14 +178,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ .Chart.Name }}-phraseforge"
+  name: "{{ include "phraseforge.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-phraseforge"
+    app: "{{ include "phraseforge.fullname" . }}"
     component: service
 spec:
   selector:
-    app: "{{ .Chart.Name }}-phraseforge"
+    app: "{{ include "phraseforge.fullname" . }}"
     component: deployment
   ports:
   - name: http
@@ -192,18 +197,18 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: "{{ .Chart.Name }}-phraseforge"
+  name: "{{ include "phraseforge.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-phraseforge"
+    app: "{{ include "phraseforge.fullname" . }}"
     component: ingress
 spec:
   entryPoints:
-  - web
+    - web
   routes:
-  - kind: Rule
-    match: Host(`{{ .Values.phraseforge.hostname }}`)
-    services:
-    - kind: Service
-      name: "{{ .Chart.Name }}-phraseforge"
-      port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.phraseforge.hostname }}`)
+      services:
+        - kind: Service
+          name: "{{ include "phraseforge.fullname" . }}"
+          port: 80

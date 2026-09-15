@@ -2,7 +2,7 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: "{{ .Chart.Name }}-alertmanager"
+  name: "{{ include "alertmanager.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 data:
   config.yml: |-
@@ -26,18 +26,18 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ .Chart.Name }}-alertmanager"
+  name: "{{ include "alertmanager.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: "{{ .Chart.Name }}-alertmanager"
+      app: "{{ include "alertmanager.fullname" . }}"
   template:
     metadata:
-      name: "{{ .Chart.Name }}-alertmanager"
+      name: "{{ include "alertmanager.fullname" . }}"
       labels:
-        app: "{{ .Chart.Name }}-alertmanager"
+        app: "{{ include "alertmanager.fullname" . }}"
     spec:
       containers:
       - name: alertmanager
@@ -47,32 +47,34 @@ spec:
           - "--storage.path=/alertmanager"
         ports:
           - containerPort: 9093
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
         resources:
-            requests:
-              memory: 16Mi
-            limits:
-              memory: 32Mi
+          limits:
+            memory: 32Mi
         volumeMounts:
-        - name: "{{ .Chart.Name }}-alertmanager-config"
+        - name: "{{ include "alertmanager.fullname" . }}-config"
           mountPath: /etc/alertmanager
-        - name: "{{ .Chart.Name }}-alertmanager-data"
+        - name: "{{ include "alertmanager.fullname" . }}-data"
           mountPath: /alertmanager
       volumes:
-      - name: "{{ .Chart.Name }}-alertmanager-config"
+      - name: "{{ include "alertmanager.fullname" . }}-config"
         configMap:
-          name: "{{ .Chart.Name }}-alertmanager"
-      - name: "{{ .Chart.Name }}-alertmanager-data"
+          name: "{{ include "alertmanager.fullname" . }}"
+      - name: "{{ include "alertmanager.fullname" . }}-data"
         emptyDir: {}
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ .Chart.Name }}-alertmanager"
+  name: "{{ include "alertmanager.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
-    app: "{{ .Chart.Name }}-alertmanager"
+    app: "{{ include "alertmanager.fullname" . }}"
   type: ClusterIP
   ports:
     - port: 9093
@@ -82,7 +84,7 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: "{{ .Chart.Name }}-alertmanager"
+  name: "{{ include "alertmanager.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
@@ -92,5 +94,5 @@ spec:
       match: Host(`{{ .Values.alertmanager.hostname }}`)
       services:
         - kind: Service
-          name: "{{ .Chart.Name }}-alertmanager"
+          name: "{{ include "alertmanager.fullname" . }}"
           port: 9093

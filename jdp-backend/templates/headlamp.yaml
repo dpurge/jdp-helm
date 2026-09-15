@@ -2,17 +2,17 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: "{{ .Chart.Name }}-headlamp-admin"
+  name: "{{ include "headlamp.fullname" . }}-admin"
   namespace: {{ .Release.Namespace }}
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: "{{ .Chart.Name }}-headlamp-admin"
+  name: "{{ include "headlamp.fullname" . }}-admin"
 subjects:
 - kind: ServiceAccount
-  name: "{{ .Chart.Name }}-headlamp-admin"
+  name: "{{ include "headlamp.fullname" . }}-admin"
   namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
@@ -23,34 +23,34 @@ roleRef:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: "{{ .Chart.Name }}-headlamp-admin"
+  name: "{{ include "headlamp.fullname" . }}-admin"
   namespace: {{ .Release.Namespace }}
   annotations:
-    kubernetes.io/service-account.name: "{{ .Chart.Name }}-headlamp-admin"
+    kubernetes.io/service-account.name: "{{ include "headlamp.fullname" . }}-admin"
 type: kubernetes.io/service-account-token
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ .Chart.Name }}-headlamp"
+  name: "{{ include "headlamp.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-headlamp"
+    app: "{{ include "headlamp.fullname" . }}"
     component: deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: "{{ .Chart.Name }}-headlamp"
+      app: "{{ include "headlamp.fullname" . }}"
       component: deployment
   template:
     metadata:
       labels:
-        app: "{{ .Chart.Name }}-headlamp"
+        app: "{{ include "headlamp.fullname" . }}"
         component: deployment
     spec:
-      serviceAccountName: "{{ .Chart.Name }}-headlamp-admin"
+      serviceAccountName: "{{ include "headlamp.fullname" . }}-admin"
       nodeSelector:
         kubernetes.io/os: linux
       containers:
@@ -64,6 +64,13 @@ spec:
           containerPort: 4466
         - name: metrics
           containerPort: 9090
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+        resources:
+          limits:
+            memory: 128Mi
         readinessProbe:
           httpGet:
             path: /
@@ -83,14 +90,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ .Chart.Name }}-headlamp"
+  name: "{{ include "headlamp.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-headlamp"
+    app: "{{ include "headlamp.fullname" . }}"
     component: service
 spec:
   selector:
-    app: "{{ .Chart.Name }}-headlamp"
+    app: "{{ include "headlamp.fullname" . }}"
     component: deployment
   ports:
   - name: http
@@ -102,18 +109,18 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: "{{ .Chart.Name }}-headlamp"
+  name: "{{ include "headlamp.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-headlamp"
+    app: "{{ include "headlamp.fullname" . }}"
     component: ingress
 spec:
   entryPoints:
-  - web
+    - web
   routes:
-  - kind: Rule
-    match: Host(`{{ .Values.headlamp.hostname }}`)
-    services:
-    - kind: Service
-      name: "{{ .Chart.Name }}-headlamp"
-      port: 80
+    - kind: Rule
+      match: Host(`{{ .Values.headlamp.hostname }}`)
+      services:
+        - kind: Service
+          name: "{{ include "headlamp.fullname" . }}"
+          port: 80

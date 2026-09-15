@@ -1,23 +1,11 @@
-# ---
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: "{{ .Chart.Name }}-openbao"
-#   namespace: "{{ .Release.Namespace }}"
-#   labels:
-#     app: "{{ .Chart.Name }}-openbao"
-#     component: configmap
-# data:
-
-
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "{{ .Chart.Name }}-openbao"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "openbao.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-openbao"
+    app: "{{ include "openbao.fullname" . }}"
     component: configmap
 data:
   local.json: |-
@@ -42,10 +30,10 @@ apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
-  name: "{{ .Chart.Name }}-openbao"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "openbao.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-openbao"
+    app: "{{ include "openbao.fullname" . }}"
     component: secrets
 stringData:
   BAO_TOKEN: "{{ .Values.openbao.token }}"
@@ -54,10 +42,10 @@ stringData:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ .Chart.Name }}-openbao"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "openbao.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels: &labels
-    app: "{{ .Chart.Name }}-openbao"
+    app: "{{ include "openbao.fullname" . }}"
     component: deployment
 spec:
   replicas: 1
@@ -82,30 +70,30 @@ spec:
         ports:
         - name: api
           containerPort: 8200
-        # resources:
-        #   requests:
-        #     memory: "1Gi"
-        #     cpu: "1000m"
-        #   limits:
-        #     memory: "2Gi"
-        #     cpu: "1000m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+        resources:
+          limits:
+            memory: 128Mi
       volumes:
       - name: config
         configMap:
-          name: "{{ .Chart.Name }}-openbao"
+          name: "{{ include "openbao.fullname" . }}"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ .Chart.Name }}-openbao"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "openbao.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-openbao"
+    app: "{{ include "openbao.fullname" . }}"
     component: service
 spec:
   selector:
-    app: "{{ .Chart.Name }}-openbao"
+    app: "{{ include "openbao.fullname" . }}"
     component: deployment
   ports:
   - protocol: TCP
@@ -117,10 +105,10 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: "{{ .Chart.Name }}-openbao"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "openbao.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-openbao"
+    app: "{{ include "openbao.fullname" . }}"
     component: ingress
 spec:
   entryPoints:
@@ -130,5 +118,5 @@ spec:
       match: Host(`{{ .Values.openbao.hostname }}`)
       services:
         - kind: Service
-          name: "{{ .Chart.Name }}-openbao"
+          name: "{{ include "openbao.fullname" . }}"
           port: 80

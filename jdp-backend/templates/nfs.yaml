@@ -4,7 +4,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app: nfs-subdir-external-provisioner
-  name: "{{ .Chart.Name }}-nfs-subdir-external-provisioner"
+  name: "{{ include "nfs.fullname" . }}"
 
 ---
 apiVersion: storage.k8s.io/v1
@@ -14,7 +14,7 @@ metadata:
     app: nfs-subdir-external-provisioner
   name: nfs
   annotations:
-provisioner: cluster.local/{{ .Chart.Name }}-nfs-subdir-external-provisioner
+provisioner: cluster.local/{{ include "nfs.fullname" . }}
 allowVolumeExpansion: true
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
@@ -27,7 +27,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: nfs-subdir-external-provisioner
-  name: "{{ .Chart.Name }}-nfs-subdir-external-provisioner-runner"
+  name: "{{ include "nfs.fullname" . }}-runner"
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
@@ -51,14 +51,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: nfs-subdir-external-provisioner
-  name: run-{{ .Chart.Name }}-nfs-subdir-external-provisioner
+  name: run-{{ include "nfs.fullname" . }}
 subjects:
   - kind: ServiceAccount
-    name: "{{ .Chart.Name }}-nfs-subdir-external-provisioner"
+    name: "{{ include "nfs.fullname" . }}"
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
-  name: "{{ .Chart.Name }}-nfs-subdir-external-provisioner-runner"
+  name: "{{ include "nfs.fullname" . }}-runner"
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -67,7 +67,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: nfs-subdir-external-provisioner
-  name: leader-locking-{{ .Chart.Name }}-nfs-subdir-external-provisioner
+  name: leader-locking-{{ include "nfs.fullname" . }}
 rules:
   - apiGroups: [""]
     resources: ["endpoints"]
@@ -79,21 +79,21 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
     app: nfs-subdir-external-provisioner
-  name: leader-locking-{{ .Chart.Name }}-nfs-subdir-external-provisioner
+  name: leader-locking-{{ include "nfs.fullname" . }}
 subjects:
   - kind: ServiceAccount
-    name: "{{ .Chart.Name }}-nfs-subdir-external-provisioner"
+    name: "{{ include "nfs.fullname" . }}"
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
-  name: leader-locking-{{ .Chart.Name }}-nfs-subdir-external-provisioner
+  name: leader-locking-{{ include "nfs.fullname" . }}
   apiGroup: rbac.authorization.k8s.io
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ .Chart.Name }}-nfs-subdir-external-provisioner"
+  name: "{{ include "nfs.fullname" . }}"
   labels:
     app: nfs-subdir-external-provisioner
 spec:
@@ -109,7 +109,7 @@ spec:
       labels:
         app: nfs-subdir-external-provisioner
     spec:
-      serviceAccountName: "{{ .Chart.Name }}-nfs-subdir-external-provisioner"
+      serviceAccountName: "{{ include "nfs.fullname" . }}"
       securityContext: {}
       containers:
         - name: nfs-subdir-external-provisioner
@@ -119,9 +119,12 @@ spec:
           volumeMounts:
             - name: nfs-subdir-external-provisioner-root
               mountPath: /persistentvolumes
+          resources:
+            limits:
+              memory: 64Mi
           env:
             - name: PROVISIONER_NAME
-              value: cluster.local/{{ .Chart.Name }}-nfs-subdir-external-provisioner
+              value: cluster.local/{{ include "nfs.fullname" . }}
             - name: NFS_SERVER
               value: {{ .Values.nfs.server }}
             - name: NFS_PATH

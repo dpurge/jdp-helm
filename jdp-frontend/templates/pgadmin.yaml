@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "{{ .Chart.Name }}-pgadmin"
+  name: "{{ include "pgadmin.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-pgadmin"
+    app: "{{ include "pgadmin.fullname" . }}"
     component: configmap
 data:
   servers.json: |
@@ -27,10 +27,10 @@ data:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: "{{ .Chart.Name }}-pgadmin"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "pgadmin.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-pgadmin"
+    app: "{{ include "pgadmin.fullname" . }}"
     component: externalsecret
 spec:
   refreshInterval: 1h
@@ -38,7 +38,7 @@ spec:
     name: "jdp-backend-secrets"
     kind: ClusterSecretStore
   target:
-    name: "{{ .Chart.Name }}-pgadmin"
+    name: "{{ include "pgadmin.fullname" . }}"
     creationPolicy: Owner
   dataFrom:
   - extract:
@@ -48,10 +48,10 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ .Chart.Name }}-pgadmin"
+  name: "{{ include "pgadmin.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels: &labels
-    app: "{{ .Chart.Name }}-pgadmin"
+    app: "{{ include "pgadmin.fullname" . }}"
     component: deployment
 spec:
   replicas: 1
@@ -63,7 +63,7 @@ spec:
     spec:
       containers:
         - name: pgadmin
-          image: {{ .Values.pgadmin.image }}
+          image: "{{ .Values.pgadmin.image }}"
           ports:
             - name: http
               containerPort: 80
@@ -72,18 +72,20 @@ spec:
             - name: PGADMIN_DEFAULT_EMAIL
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Chart.Name }}-pgadmin"
+                  name: "{{ include "pgadmin.fullname" . }}"
                   key: admin-email
             - name: PGADMIN_DEFAULT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Chart.Name }}-pgadmin"
+                  name: "{{ include "pgadmin.fullname" . }}"
                   key: admin-password
-          # resources:
-          #   requests:
-          #     memory: 16Mi
-          #   limits:
-          #     memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            limits:
+              memory: 32Mi
           volumeMounts:
           - name: "config"
             mountPath: /pgadmin4/servers.json
@@ -94,7 +96,7 @@ spec:
       volumes:
       - name: "config"
         configMap:
-          name: "{{ .Chart.Name }}-pgadmin"
+          name: "{{ include "pgadmin.fullname" . }}"
       - name: "data"
         emptyDir:
           sizeLimit: 10Mi
@@ -103,14 +105,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ .Chart.Name }}-pgadmin"
+  name: "{{ include "pgadmin.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-pgadmin"
+    app: "{{ include "pgadmin.fullname" . }}"
     component: service
 spec:
   selector:
-    app: "{{ .Chart.Name }}-pgadmin"
+    app: "{{ include "pgadmin.fullname" . }}"
     component: deployment
   ports:
     - protocol: TCP
@@ -121,10 +123,10 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: "{{ .Chart.Name }}-pgadmin"
+  name: "{{ include "pgadmin.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-pgadmin"
+    app: "{{ include "pgadmin.fullname" . }}"
     component: ingress
 spec:
   entryPoints:
@@ -134,5 +136,5 @@ spec:
       match: Host(`{{ .Values.pgadmin.hostname }}`)
       services:
         - kind: Service
-          name: "{{ .Chart.Name }}-pgadmin"
+          name: "{{ include "pgadmin.fullname" . }}"
           port: 80

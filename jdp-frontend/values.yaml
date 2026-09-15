@@ -6,7 +6,7 @@ pgadmin:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.9.3
+  image: ghcr.io/dpurge/phraseforge:2026.9.4
   hostname: phraseforge.home.arpa
   database:
     name: phraseforge

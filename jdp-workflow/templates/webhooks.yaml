@@ -16,14 +16,14 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: "{{ .Chart.Name }}-events-workflow"
+  name: "{{ include "events-workflow.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: "{{ .Chart.Name }}-events-workflow"
+  name: "{{ include "events-workflow.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups: [argoproj.io]
@@ -34,22 +34,22 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: "{{ .Chart.Name }}-events-workflow"
+  name: "{{ include "events-workflow.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: "{{ .Chart.Name }}-events-workflow"
+  name: "{{ include "events-workflow.fullname" . }}"
 subjects:
 - kind: ServiceAccount
-  name: "{{ .Chart.Name }}-events-workflow"
+  name: "{{ include "events-workflow.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: EventSource
 metadata:
-  name: "{{ .Chart.Name }}-webhook"
+  name: "{{ include "webhook.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   service:
@@ -66,14 +66,14 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: "{{ .Chart.Name }}-webhook"
+  name: "{{ include "webhook.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   template:
-    serviceAccountName: "{{ .Chart.Name }}-events-workflow"
+    serviceAccountName: "{{ include "events-workflow.fullname" . }}"
   dependencies:
   - name: youtube-webhook
-    eventSourceName: "{{ .Chart.Name }}-webhook"
+    eventSourceName: "{{ include "webhook.fullname" . }}"
     eventName: youtube
   triggers:
   - template:
@@ -85,26 +85,26 @@ spec:
             apiVersion: argoproj.io/v1alpha1
             kind: Workflow
             metadata:
-              generateName: "{{ .Chart.Name }}-youtube-"
+              generateName: "{{ include "youtube.fullname" . }}-"
               namespace: {{ .Release.Namespace }}
             spec:
               workflowTemplateRef:
-                name: "{{ .Chart.Name }}-youtube"
+                name: "{{ include "youtube.fullname" . }}"
         parameters: []
 
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: "{{ .Chart.Name }}-webhook"
+  name: "{{ include "webhook.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
-  - web
+    - web
   routes:
-  - kind: Rule
-    match: Host(`{{ .Values.workflows.hostname }}`) && PathPrefix(`/youtube`)
-    services:
-    - kind: Service
-      name: webhook-eventsource-svc
-      port: 12000
+    - kind: Rule
+      match: Host(`{{ .Values.workflows.hostname }}`) && PathPrefix(`/youtube`)
+      services:
+        - kind: Service
+          name: webhook-eventsource-svc
+          port: 12000

@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: "{{ .Chart.Name }}-planka-user-avatars"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}-user-avatars"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: pvc
 spec:
   storageClassName: nfs
@@ -19,10 +19,10 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: "{{ .Chart.Name }}-planka-favicons"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}-favicons"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: pvc
 spec:
   storageClassName: nfs
@@ -36,10 +36,10 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: "{{ .Chart.Name }}-planka-background-images"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}-background-images"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: pvc
 spec:
   storageClassName: nfs
@@ -53,10 +53,10 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: "{{ .Chart.Name }}-planka-attachments"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}-attachments"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: pvc
 spec:
   storageClassName: nfs
@@ -70,10 +70,10 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "{{ .Chart.Name }}-planka"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: configmap
 data:
   NODE_ENV: production
@@ -86,10 +86,10 @@ data:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: "{{ .Chart.Name }}-planka"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: externalsecret
 spec:
   refreshInterval: 1h
@@ -100,7 +100,7 @@ spec:
   - extract:
       key: planka
   target:
-    name: "{{ .Chart.Name }}-planka"
+    name: "{{ include "planka.fullname" . }}"
     creationPolicy: Owner
     template:
       engineVersion: v2
@@ -115,10 +115,10 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ .Chart.Name }}-planka"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels: &labels
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: deployment
 spec:
   replicas: 1
@@ -137,9 +137,9 @@ spec:
           containerPort: 1337
         envFrom:
         - configMapRef:
-            name: "{{ .Chart.Name }}-planka"
+            name: "{{ include "planka.fullname" . }}"
         - secretRef:
-            name: "{{ .Chart.Name }}-planka"
+            name: "{{ include "planka.fullname" . }}"
         volumeMounts:
         - name: "favicons"
           mountPath: /app/public/favicons
@@ -149,39 +149,39 @@ spec:
           mountPath: /app/public/background-images
         - name: "attachments"
           mountPath: /app/private/attachments
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
         resources:
-          requests:
-            memory: "1Gi"
-            cpu: "1000m"
           limits:
             memory: "2Gi"
-            cpu: "1000m"
       volumes:
       - name: "favicons"
         persistentVolumeClaim:
-          claimName: "{{ .Chart.Name }}-planka-favicons"
+          claimName: "{{ include "planka.fullname" . }}-favicons"
       - name: "user-avatars"
         persistentVolumeClaim:
-          claimName: "{{ .Chart.Name }}-planka-user-avatars"
+          claimName: "{{ include "planka.fullname" . }}-user-avatars"
       - name: "background-images"
         persistentVolumeClaim:
-          claimName: "{{ .Chart.Name }}-planka-background-images"
+          claimName: "{{ include "planka.fullname" . }}-background-images"
       - name: "attachments"
         persistentVolumeClaim:
-          claimName: "{{ .Chart.Name }}-planka-attachments"
+          claimName: "{{ include "planka.fullname" . }}-attachments"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ .Chart.Name }}-planka"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: service
 spec:
   selector:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: deployment
   ports:
   - protocol: TCP
@@ -193,10 +193,10 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: "{{ .Chart.Name }}-planka"
-  namespace: "{{ .Release.Namespace }}"
+  name: "{{ include "planka.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ .Chart.Name }}-planka"
+    app: "{{ include "planka.fullname" . }}"
     component: ingress
 spec:
   entryPoints:
@@ -206,5 +206,5 @@ spec:
       match: Host(`{{ .Values.planka.hostname }}`)
       services:
         - kind: Service
-          name: "{{ .Chart.Name }}-planka"
+          name: "{{ include "planka.fullname" . }}"
           port: 80

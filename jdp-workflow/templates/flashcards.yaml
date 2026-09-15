@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:
   namespace: {{ .Release.Namespace }}
-  name: "{{ .Chart.Name }}-flashcards"
+  name: "{{ include "flashcards.fullname" . }}"
 spec:
   schedule: "05 3 * * *"
   timezone: "Europe/Warsaw"
@@ -52,10 +52,10 @@ spec:
               #   key: github-key
               # insecureIgnoreHostKey: true
               usernameSecret:
-                name: "{{ .Chart.Name }}-workflows"
+                name: "{{ include "workflows.fullname" . }}"
                 key: github-username
               passwordSecret:
-                name: "{{ .Chart.Name }}-workflows"
+                name: "{{ include "workflows.fullname" . }}"
                 key: github-password
         script:
           image: {{`"{{workflow.parameters.image}}"`}}
