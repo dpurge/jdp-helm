@@ -12,6 +12,33 @@
 
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Chart.Name }}-openbao"
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: "{{ .Chart.Name }}-openbao"
+    component: configmap
+data:
+  local.json: |-
+    {
+      "storage": {
+        "postgresql": {
+          "connection_url": "postgresql://{{ .Values.openbao.database.username }}:{{ .Values.openbao.database.password }}@{{ .Values.openbao.database.host }}:{{ .Values.openbao.database.port }}/{{ .Values.openbao.database.name }}"
+        }
+      },
+      "listener": {
+        "tcp": {
+          "address": "0.0.0.0:8200",
+          "tls_disable": true
+        }
+      },
+      "api_addr": "http://{{ .Values.openbao.hostname }}",
+      "ui": true
+    }
+
+---
+apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
@@ -21,15 +48,7 @@ metadata:
     app: "{{ .Chart.Name }}-openbao"
     component: secrets
 stringData:
-  BAO_DEV_ROOT_TOKEN_ID: "{{ .Values.openbao.token }}"
-  BAO_LOCAL_CONFIG: |-
-    {
-      "storage":{
-        "postgresql": {
-          "connection_url": "postgresql://{{ .Values.openbao.database.username }}:{{ .Values.openbao.database.password }}@{{ .Values.openbao.database.host }}:{{ .Values.openbao.database.port }}/{{ .Values.openbao.database.name }}"
-        }
-      }
-    }
+  BAO_TOKEN: "{{ .Values.openbao.token }}"
 
 ---
 apiVersion: apps/v1
@@ -52,14 +71,17 @@ spec:
       - name: openbao
         image: "{{ .Values.openbao.image }}"
         imagePullPolicy: IfNotPresent
+        args:
+        - server
+        - -config=/openbao/config/local.json
+        volumeMounts:
+        - name: config
+          mountPath: /openbao/config/local.json
+          subPath: local.json
+          readOnly: true
         ports:
         - name: api
           containerPort: 8200
-        envFrom:
-        # - configMapRef:
-        #     name: "{{ .Chart.Name }}-openbao"
-        - secretRef:
-            name: "{{ .Chart.Name }}-openbao"
         # resources:
         #   requests:
         #     memory: "1Gi"
@@ -67,6 +89,10 @@ spec:
         #   limits:
         #     memory: "2Gi"
         #     cpu: "1000m"
+      volumes:
+      - name: config
+        configMap:
+          name: "{{ .Chart.Name }}-openbao"
 
 ---
 apiVersion: v1

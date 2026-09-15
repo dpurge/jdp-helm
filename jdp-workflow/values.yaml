@@ -1,5 +1,8 @@
 workflows:
-  role: jdp-backend-argo-workflows-workflow
+  # This Role belongs to the workflow release and must be distinct from the
+  # backend release's Role of the same historical name.
+  role: jdp-workflow-workflows-role
+  hostname: workflows.home.arpa
 
 youtube:
   image: jauderho/yt-dlp:2026.08.19

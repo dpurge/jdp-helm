@@ -5,6 +5,17 @@ pgadmin:
     host: jdp-data-postgres.data.svc.cluster.local
     port: 5432
 
+phraseforge:
+  image: ghcr.io/dpurge/phraseforge:2026.9.3
+  hostname: phraseforge.home.arpa
+  database:
+    name: phraseforge
+    host: jdp-data-postgres.data.svc.cluster.local
+    port: 5432
+  llm:
+    baseUrl: https://openrouter.ai/api/v1
+    model: openai/gpt-4o-mini
+
 planka:
   image: ghcr.io/plankanban/planka:2.0.0-rc.4
   hostname: planka.home.arpa

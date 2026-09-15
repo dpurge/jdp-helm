@@ -45,13 +45,13 @@ metadata:
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: "{{ .Chart.Name }}-workflows-rolebinding"
   namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: "{{ .Chart.Name }}-workflows-role"
 subjects:
 - kind: ServiceAccount

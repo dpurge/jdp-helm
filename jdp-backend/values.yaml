@@ -17,6 +17,11 @@ openbao:
 workflows:
   hostname: workflows.home.arpa
 
+headlamp:
+  image: ghcr.io/headlamp-k8s/headlamp
+  version: v0.45.0
+  hostname: headlamp.home.arpa
+
 argo-workflows:
   server:
     authModes:
@@ -24,22 +29,5 @@ argo-workflows:
   controller:
     workflowNamespaces:
     - workflow
-
-n8n:
-  image: n8nio/n8n:1.111.0
-  timezone: Europe/Warsaw
-  hostname: n8n.home.arpa
-  dbuser: n8n
-  dbpassword: n8n
-  dbname: n8n
-  dbhost: jdp-data-postgres.data.svc.cluster.local
-  dbport: 5432
-  cryptokey: n8n
-  user: n8n
-  password: n8n
-
-ollama:
-  image: ollama/ollama:0.11.10
-  model: deepseek-r1:8b
 
 # sealed-secrets:

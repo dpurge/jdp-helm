@@ -1,0 +1,209 @@
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "{{ .Chart.Name }}-phraseforge"
+  namespace: {{ .Release.Namespace }}
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: jdp-backend-secrets
+    kind: ClusterSecretStore
+  target:
+    name: "{{ .Chart.Name }}-phraseforge"
+    creationPolicy: Owner
+  data:
+  - secretKey: PGUSER
+    remoteRef:
+      key: phraseforge
+      property: postgres-username
+  - secretKey: PGPASSWORD
+    remoteRef:
+      key: phraseforge
+      property: postgres-password
+  - secretKey: PGDATABASE
+    remoteRef:
+      key: phraseforge
+      property: postgres-database
+  - secretKey: LLM_API_KEY
+    remoteRef:
+      key: phraseforge
+      property: llm-api-key
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Chart.Name }}-phraseforge-migrate"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-phraseforge"
+    component: migration
+  annotations:
+    # Run as a hook so each release gets a fresh Job (Job spec.template is
+    # immutable, so a plain manifest can never be upgraded in place).
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    # before-hook-creation: delete the previous release's Job so the new one
+    # can be created even if it's still around (e.g. it failed or ttl hasn't
+    # expired yet). hook-succeeded: clean up after a successful migration.
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: "{{ .Chart.Name }}-phraseforge"
+        component: migration
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: migrate
+        image: "{{ .Values.phraseforge.image }}"
+        imagePullPolicy: IfNotPresent
+        command: ["/phraseforge", "migrate"]
+        env:
+        - name: PGHOST
+          value: {{ .Values.phraseforge.database.host | quote }}
+        - name: PGPORT
+          value: {{ .Values.phraseforge.database.port | quote }}
+        - name: PGDATABASE
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Chart.Name }}-phraseforge"
+              key: PGDATABASE
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Chart.Name }}-phraseforge"
+              key: PGUSER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Chart.Name }}-phraseforge"
+              key: PGPASSWORD
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Chart.Name }}-phraseforge"
+  namespace: {{ .Release.Namespace }}
+  labels: &labels
+    app: "{{ .Chart.Name }}-phraseforge"
+    component: deployment
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+      - name: phraseforge
+        image: "{{ .Values.phraseforge.image }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8090
+        env:
+        - name: PGHOST
+          value: {{ .Values.phraseforge.database.host | quote }}
+        - name: PGPORT
+          value: {{ .Values.phraseforge.database.port | quote }}
+        - name: PGDATABASE
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Chart.Name }}-phraseforge"
+              key: PGDATABASE
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Chart.Name }}-phraseforge"
+              key: PGUSER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Chart.Name }}-phraseforge"
+              key: PGPASSWORD
+        - name: BIND_ADDR
+          value: 0.0.0.0:8090
+        - name: SESSION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Chart.Name }}-phraseforge"
+              key: PGPASSWORD
+        - name: LLM_PROVIDER
+          value: openai
+        - name: LLM_BASE_URL
+          value: {{ .Values.phraseforge.llm.baseUrl | quote }}
+        - name: LLM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ .Chart.Name }}-phraseforge"
+              key: LLM_API_KEY
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 6
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Chart.Name }}-phraseforge"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-phraseforge"
+    component: service
+spec:
+  selector:
+    app: "{{ .Chart.Name }}-phraseforge"
+    component: deployment
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8090
+  type: ClusterIP
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: "{{ .Chart.Name }}-phraseforge"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ .Chart.Name }}-phraseforge"
+    component: ingress
+spec:
+  entryPoints:
+  - web
+  routes:
+  - kind: Rule
+    match: Host(`{{ .Values.phraseforge.hostname }}`)
+    services:
+    - kind: Service
+      name: "{{ .Chart.Name }}-phraseforge"
+      port: 80

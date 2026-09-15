@@ -75,3 +75,9 @@ helm uninstall jdp-backend
 ```sh
 cat secret.yaml | kubeseal --controller-namespace jdp-backend --controller-name jdp-backend-sealed-secrets --format yaml > sealed-secret.yaml
 ```
+
+## Accessing Headlamp
+
+```sh
+kubectl get secret jdp-backend-headlamp-admin -n backend -o jsonpath='{.data.token}' | base64 -d
+```
