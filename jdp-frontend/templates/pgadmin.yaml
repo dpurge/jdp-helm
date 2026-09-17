@@ -80,12 +80,11 @@ spec:
                   name: "{{ include "pgadmin.fullname" . }}"
                   key: admin-password
           securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: [ALL]
+            runAsUser: 0
+            allowPrivilegeEscalation: true
           resources:
             limits:
-              memory: 32Mi
+              memory: 256Mi
           volumeMounts:
           - name: "config"
             mountPath: /pgadmin4/servers.json
