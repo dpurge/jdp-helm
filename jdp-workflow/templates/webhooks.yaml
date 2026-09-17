@@ -106,5 +106,5 @@ spec:
       match: Host(`{{ .Values.workflows.hostname }}`) && PathPrefix(`/youtube`)
       services:
         - kind: Service
-          name: webhook-eventsource-svc
+          name: "{{ include "webhook.fullname" . }}-eventsource-svc"
           port: 12000

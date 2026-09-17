@@ -12,3 +12,7 @@ Fully qualified resource name for each app in this chart, e.g. "jdp-frontend-phr
 {{- define "planka.fullname" -}}
 {{ .Chart.Name }}-planka
 {{- end -}}
+
+{{- define "knowledge.fullname" -}}
+{{ .Chart.Name }}-knowledge
+{{- end -}}

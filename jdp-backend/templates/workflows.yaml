@@ -69,6 +69,25 @@ metadata:
 type: kubernetes.io/service-account-token
 
 ---
+# The argo-workflows UI otherwise defaults to whatever namespace the server
+# pod itself runs in ({{ .Release.Namespace }}), which has no workflows —
+# they run in .Values.workflows.namespace instead. Redirecting
+# just the bare root path to the namespaced URL (the same URL scheme Argo's
+# own UI already uses for /workflows/<namespace>) fixes the landing page
+# without touching argo-workflows' own RBAC/args — see values.yaml for why
+# --managed-namespace doesn't cleanly fit this topology.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: "{{ include "workflows.fullname" . }}-default-namespace"
+  namespace: {{ .Release.Namespace }}
+spec:
+  redirectRegex:
+    regex: "^https?://[^/]+/?$"
+    replacement: "http://{{ .Values.workflows.hostname }}/workflows/{{ .Values.workflows.namespace }}"
+    permanent: false
+
+---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -80,6 +99,8 @@ spec:
   routes:
     - kind: Rule
       match: Host(`{{ .Values.workflows.hostname }}`)
+      middlewares:
+        - name: "{{ include "workflows.fullname" . }}-default-namespace"
       services:
         - kind: Service
           name: "{{ .Chart.Name }}-argo-workflows-server"

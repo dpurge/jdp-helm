@@ -20,3 +20,11 @@ Fully qualified resource name for each app in this chart, e.g. "jdp-backend-open
 {{- define "workflows.fullname" -}}
 {{ .Chart.Name }}-workflows
 {{- end -}}
+
+{{- define "argo-events.fullname" -}}
+{{ .Chart.Name }}-argo-events
+{{- end -}}
+
+{{- define "ollama.fullname" -}}
+{{ .Chart.Name }}-ollama
+{{- end -}}

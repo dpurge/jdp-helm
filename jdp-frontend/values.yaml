@@ -13,8 +13,9 @@ phraseforge:
     host: jdp-data-postgres.data.svc.cluster.local
     port: 5432
   llm:
-    baseUrl: https://openrouter.ai/api/v1
-    model: openai/gpt-4o-mini
+    provider: ollama
+    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    model: rinex20/translategemma3:12b
 
 planka:
   image: ghcr.io/plankanban/planka:2.0.0-rc.4
@@ -23,3 +24,22 @@ planka:
     name: planka
     host: jdp-data-postgres.data.svc.cluster.local
     port: 5432
+
+knowledge:
+  image: ghcr.io/dpurge/knowledge:2026.9.2
+  hostname: knowledge.home.arpa
+  database:
+    name: knowledge
+    host: jdp-data-postgres.data.svc.cluster.local
+    port: 5432
+  qdrant:
+    url: http://jdp-data-qdrant.data.svc.cluster.local:6333
+  embeddings:
+    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    model: bge-m3
+    # bge-m3 produces 1024-dim dense embeddings — verified directly against
+    # the running Ollama instance (POST /api/embeddings), not assumed.
+    dimension: 1024
+  chat:
+    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    model: llama3-chatqa:8b

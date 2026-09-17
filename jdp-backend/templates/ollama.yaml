@@ -1,0 +1,154 @@
+---
+# Model cache lives on the nfs StorageClass (NAS-backed), not the node's own
+# disk — the node's local disk is small and already tight.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ include "ollama.fullname" . }}-data"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ include "ollama.fullname" . }}"
+    component: data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: {{ .Values.ollama.storage.size }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ include "ollama.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
+  labels: &labels
+    app: "{{ include "ollama.fullname" . }}"
+    component: deployment
+spec:
+  replicas: 1
+  # Recreate required: RWO PVC cannot attach to an old and a new pod simultaneously
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+      - name: ollama
+        image: "{{ .Values.ollama.image }}:{{ .Values.ollama.version }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: api
+          containerPort: 11434
+        env:
+        - name: OLLAMA_MODELS
+          value: /data/models
+        - name: OLLAMA_KEEP_ALIVE
+          value: {{ .Values.ollama.keepAlive | quote }}
+        - name: OLLAMA_MAX_LOADED_MODELS
+          value: {{ .Values.ollama.maxLoadedModels | quote }}
+        - name: OLLAMA_NUM_PARALLEL
+          value: "1"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+        resources:
+          {{- toYaml .Values.ollama.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        readinessProbe:
+          httpGet:
+            path: /
+            port: api
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /
+            port: api
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: "{{ include "ollama.fullname" . }}-data"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ include "ollama.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ include "ollama.fullname" . }}"
+    component: service
+spec:
+  selector:
+    app: "{{ include "ollama.fullname" . }}"
+    component: deployment
+  ports:
+  - name: api
+    port: 11434
+    targetPort: api
+  type: ClusterIP
+
+---
+# Pulls the configured models into the PVC above. Runs as a hook so each
+# release gets a fresh Job (Job spec.template is immutable, so a plain
+# manifest can never be upgraded in place) — same pattern as
+# jdp-frontend's phraseforge-migrate Job. `ollama pull` is a no-op for
+# blobs already present, so re-running this on every upgrade is cheap.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ include "ollama.fullname" . }}-pull-models"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ include "ollama.fullname" . }}"
+    component: pull-models
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: "{{ include "ollama.fullname" . }}"
+        component: pull-models
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: pull-models
+        image: "{{ .Values.ollama.image }}:{{ .Values.ollama.version }}"
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: OLLAMA_HOST
+          value: "{{ include "ollama.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:11434"
+        command: ["sh", "-c"]
+        args:
+        - |
+          set -e
+          i=0
+          until ollama list >/dev/null 2>&1; do
+            i=$((i + 1))
+            if [ "$i" -ge 60 ]; then
+              echo "ollama did not become reachable in time" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+          {{- range .Values.ollama.models }}
+          ollama pull {{ . | quote }}
+          {{- end }}

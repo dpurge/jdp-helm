@@ -74,6 +74,11 @@ spec:
           allowPrivilegeEscalation: false
           capabilities:
             drop: [ALL]
+            # openbao/openbao's entrypoint uses su-exec to drop from root to
+            # its runtime user at startup; that needs these two, or su-exec
+            # fails with "setgroups: Operation not permitted" and the
+            # container crash-loops.
+            add: [SETUID, SETGID]
         resources:
           limits:
             memory: 128Mi

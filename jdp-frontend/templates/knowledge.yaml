@@ -2,7 +2,7 @@
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: "{{ include "phraseforge.fullname" . }}"
+  name: "{{ include "knowledge.fullname" . }}"
   namespace: {{ .Release.Namespace }}
 spec:
   refreshInterval: 1h
@@ -10,34 +10,30 @@ spec:
     name: jdp-backend-secrets
     kind: ClusterSecretStore
   target:
-    name: "{{ include "phraseforge.fullname" . }}"
+    name: "{{ include "knowledge.fullname" . }}"
     creationPolicy: Owner
   data:
   - secretKey: PGUSER
     remoteRef:
-      key: phraseforge
+      key: knowledge
       property: postgres-username
   - secretKey: PGPASSWORD
     remoteRef:
-      key: phraseforge
+      key: knowledge
       property: postgres-password
   - secretKey: PGDATABASE
     remoteRef:
-      key: phraseforge
+      key: knowledge
       property: postgres-database
-  - secretKey: LLM_API_KEY
-    remoteRef:
-      key: phraseforge
-      property: llm-api-key
 
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "{{ include "phraseforge.fullname" . }}-migrate"
+  name: "{{ include "knowledge.fullname" . }}-migrate"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ include "phraseforge.fullname" . }}"
+    app: "{{ include "knowledge.fullname" . }}"
     component: migration
   annotations:
     # Run as a hook so each release gets a fresh Job (Job spec.template is
@@ -54,44 +50,54 @@ spec:
   template:
     metadata:
       labels:
-        app: "{{ include "phraseforge.fullname" . }}"
+        app: "{{ include "knowledge.fullname" . }}"
         component: migration
     spec:
       restartPolicy: Never
       containers:
       - name: migrate
-        image: "{{ .Values.phraseforge.image }}"
+        image: "{{ .Values.knowledge.image }}"
         imagePullPolicy: IfNotPresent
-        command: ["/phraseforge", "migrate"]
+        command: ["/knowledge", "migrate"]
         env:
         - name: PGHOST
-          value: {{ .Values.phraseforge.database.host | quote }}
+          value: {{ .Values.knowledge.database.host | quote }}
         - name: PGPORT
-          value: {{ .Values.phraseforge.database.port | quote }}
+          value: {{ .Values.knowledge.database.port | quote }}
         - name: PGDATABASE
           valueFrom:
             secretKeyRef:
-              name: "{{ include "phraseforge.fullname" . }}"
+              name: "{{ include "knowledge.fullname" . }}"
               key: PGDATABASE
         - name: PGUSER
           valueFrom:
             secretKeyRef:
-              name: "{{ include "phraseforge.fullname" . }}"
+              name: "{{ include "knowledge.fullname" . }}"
               key: PGUSER
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
-              name: "{{ include "phraseforge.fullname" . }}"
+              name: "{{ include "knowledge.fullname" . }}"
               key: PGPASSWORD
+        - name: QDRANT_URL
+          value: {{ .Values.knowledge.qdrant.url | quote }}
+        - name: EMBEDDINGS_PROVIDER
+          value: ollama
+        - name: EMBEDDINGS_BASE_URL
+          value: {{ .Values.knowledge.embeddings.baseUrl | quote }}
+        - name: EMBEDDINGS_MODEL
+          value: {{ .Values.knowledge.embeddings.model | quote }}
+        - name: EMBEDDINGS_DIMENSION
+          value: {{ .Values.knowledge.embeddings.dimension | quote }}
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ include "phraseforge.fullname" . }}"
+  name: "{{ include "knowledge.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels: &labels
-    app: "{{ include "phraseforge.fullname" . }}"
+    app: "{{ include "knowledge.fullname" . }}"
     component: deployment
 spec:
   replicas: 1
@@ -107,50 +113,48 @@ spec:
         runAsNonRoot: true
         runAsUser: 65532
       containers:
-      - name: phraseforge
-        image: "{{ .Values.phraseforge.image }}"
+      - name: knowledge
+        image: "{{ .Values.knowledge.image }}"
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
-          containerPort: 8090
+          containerPort: 8300
         env:
         - name: PGHOST
-          value: {{ .Values.phraseforge.database.host | quote }}
+          value: {{ .Values.knowledge.database.host | quote }}
         - name: PGPORT
-          value: {{ .Values.phraseforge.database.port | quote }}
+          value: {{ .Values.knowledge.database.port | quote }}
         - name: PGDATABASE
           valueFrom:
             secretKeyRef:
-              name: "{{ include "phraseforge.fullname" . }}"
+              name: "{{ include "knowledge.fullname" . }}"
               key: PGDATABASE
         - name: PGUSER
           valueFrom:
             secretKeyRef:
-              name: "{{ include "phraseforge.fullname" . }}"
+              name: "{{ include "knowledge.fullname" . }}"
               key: PGUSER
         - name: PGPASSWORD
           valueFrom:
             secretKeyRef:
-              name: "{{ include "phraseforge.fullname" . }}"
+              name: "{{ include "knowledge.fullname" . }}"
               key: PGPASSWORD
-        - name: BIND_ADDR
-          value: 0.0.0.0:8090
-        - name: SESSION_KEY
-          valueFrom:
-            secretKeyRef:
-              name: "{{ include "phraseforge.fullname" . }}"
-              key: PGPASSWORD
-        - name: LLM_PROVIDER
-          value: {{ .Values.phraseforge.llm.provider | quote }}
-        - name: LLM_BASE_URL
-          value: {{ .Values.phraseforge.llm.baseUrl | quote }}
-        - name: LLM_MODEL
-          value: {{ .Values.phraseforge.llm.model | quote }}
-        - name: LLM_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: "{{ include "phraseforge.fullname" . }}"
-              key: LLM_API_KEY
+        - name: QDRANT_URL
+          value: {{ .Values.knowledge.qdrant.url | quote }}
+        - name: EMBEDDINGS_PROVIDER
+          value: ollama
+        - name: EMBEDDINGS_BASE_URL
+          value: {{ .Values.knowledge.embeddings.baseUrl | quote }}
+        - name: EMBEDDINGS_MODEL
+          value: {{ .Values.knowledge.embeddings.model | quote }}
+        - name: EMBEDDINGS_DIMENSION
+          value: {{ .Values.knowledge.embeddings.dimension | quote }}
+        - name: CHAT_PROVIDER
+          value: ollama
+        - name: CHAT_BASE_URL
+          value: {{ .Values.knowledge.chat.baseUrl | quote }}
+        - name: CHAT_MODEL
+          value: {{ .Values.knowledge.chat.model | quote }}
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
@@ -178,37 +182,37 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{ include "phraseforge.fullname" . }}"
+  name: "{{ include "knowledge.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ include "phraseforge.fullname" . }}"
+    app: "{{ include "knowledge.fullname" . }}"
     component: service
 spec:
   selector:
-    app: "{{ include "phraseforge.fullname" . }}"
+    app: "{{ include "knowledge.fullname" . }}"
     component: deployment
   ports:
   - name: http
     port: 80
-    targetPort: 8090
+    targetPort: 8300
   type: ClusterIP
 
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: "{{ include "phraseforge.fullname" . }}"
+  name: "{{ include "knowledge.fullname" . }}"
   namespace: {{ .Release.Namespace }}
   labels:
-    app: "{{ include "phraseforge.fullname" . }}"
+    app: "{{ include "knowledge.fullname" . }}"
     component: ingress
 spec:
   entryPoints:
     - web
   routes:
     - kind: Rule
-      match: Host(`{{ .Values.phraseforge.hostname }}`)
+      match: Host(`{{ .Values.knowledge.hostname }}`)
       services:
         - kind: Service
-          name: "{{ include "phraseforge.fullname" . }}"
+          name: "{{ include "knowledge.fullname" . }}"
           port: 80

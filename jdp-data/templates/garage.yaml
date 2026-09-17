@@ -1,0 +1,23 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: "{{ include "garage.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
+spec:
+  clusterIP: None
+  ports:
+  - port: {{ .Values.garage.port }}
+
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: "{{ include "garage.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
+subsets:
+  - addresses:
+        - ip: {{ .Values.garage.ip }}
+    ports:
+      - port: {{ .Values.garage.port }}
+        name: "{{ include "garage.fullname" . }}"

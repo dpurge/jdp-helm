@@ -16,16 +16,59 @@ openbao:
 
 workflows:
   hostname: workflows.home.arpa
+  # Namespace where jdp-workflow deploys its EventBus/EventSource/Sensor
+  # objects; argo-events is scoped to manage only this namespace (see
+  # templates/argo-events.yaml).
+  namespace: workflow
+
+argoEvents:
+  image: quay.io/argoproj/argo-events
+  version: v1.9.11
 
 headlamp:
   image: ghcr.io/headlamp-k8s/headlamp
   version: v0.45.0
   hostname: headlamp.home.arpa
 
+ollama:
+  image: ollama/ollama
+  version: "0.34.1"
+  # How long a model stays loaded in RAM after its last use. Extended from
+  # 5m now that knowledge's chat interface is meant to be used
+  # interactively — long enough to cover a normal back-and-forth session
+  # without reloading between messages, still frees RAM after real idle.
+  keepAlive: 15m
+  # Two loaded models at once: knowledge's RAG flow needs its embedding
+  # model (nomic-embed-text) and chat model (llama3-chatqa:8b) resident
+  # together, or every request would evict-and-reload between them.
+  maxLoadedModels: 2
+  # Pulled by the post-install/post-upgrade hook Job below.
+  models:
+  - rinex20/translategemma3:12b
+  - bge-m3
+  - nomic-embed-text
+  - llama3-chatqa:8b
+  storage:
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "6"
+      memory: 16Gi
+
 argo-workflows:
   server:
     authModes:
     - server
+    # Default-namespace fix lives at the ingress layer instead (see
+    # templates/workflows.yaml) — --managed-namespace is real but is
+    # silently ignored unless --namespaced is also set ("ignoring
+    # --managed-namespace because --namespaced is false", confirmed from
+    # the running server's own log), and --namespaced would drop the
+    # server's RBAC from cluster-wide ClusterRole to a Role scoped to its
+    # own namespace (backend), not workflow, without extra hand-built RBAC.
   controller:
     workflowNamespaces:
     - workflow

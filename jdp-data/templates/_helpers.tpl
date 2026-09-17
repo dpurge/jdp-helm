@@ -1,8 +1,8 @@
 {{/*
 Fully qualified resource name for each app in this chart, e.g. "jdp-data-minio".
 */}}
-{{- define "minio.fullname" -}}
-{{ .Chart.Name }}-minio
+{{- define "garage.fullname" -}}
+{{ .Chart.Name }}-garage
 {{- end -}}
 
 {{- define "nats.fullname" -}}

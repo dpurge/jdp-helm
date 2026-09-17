@@ -1,6 +1,6 @@
 apiVersion: v2
 name: jdp-data
-description: JDP data services - registry, pgsql, nats, minio, qdrant
+description: JDP data services - registry, pgsql, nats, garage, qdrant
 
 type: application
 version: 0.1.0

@@ -7,12 +7,9 @@ dependencies:
   version: 38.0.1
 - name: argo-workflows
   repository: https://argoproj.github.io/argo-helm
-  version: 0.46.3
-- name: argo-events
-  repository: https://argoproj.github.io/argo-helm
-  version: 2.4.19
+  version: 2.0.6
 - name: external-secrets
   repository: https://charts.external-secrets.io
   version: 1.2.1
-digest: sha256:4d0d09c1cedf55dbe6165baf51ebcf652b2b449d760f21b9abdebed3f07f11be
-generated: "2026-01-06T18:00:41.4446702+01:00"
+digest: sha256:8530880ffa3852bd3c1068a0bf4fbd53ad88d6fdfec235f4a1d0f95a2d161267
+generated: "2026-09-17T11:30:55.150997+02:00"
