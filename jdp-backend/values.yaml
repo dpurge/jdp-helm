@@ -39,15 +39,14 @@ ollama:
   # without reloading between messages, still frees RAM after real idle.
   keepAlive: 15m
   # Two loaded models at once: knowledge's RAG flow needs its embedding
-  # model (nomic-embed-text) and chat model (llama3-chatqa:8b) resident
+  # model (bge-m3) and chat/generate model (gemma4:12b) resident
   # together, or every request would evict-and-reload between them.
   maxLoadedModels: 2
   # Pulled by the post-install/post-upgrade hook Job below.
   models:
   - rinex20/translategemma3:12b
   - bge-m3
-  - nomic-embed-text
-  - llama3-chatqa:8b
+  - gemma4:12b
   storage:
     size: 20Gi
   resources:

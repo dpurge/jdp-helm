@@ -21,10 +21,55 @@ spec:
     remoteRef:
       key: knowledge
       property: postgres-password
-  - secretKey: PGDATABASE
-    remoteRef:
-      key: knowledge
-      property: postgres-database
+
+---
+# knowledge reads all non-credential settings (Qdrant, Postgres host/port/
+# database, embeddings/chat/generate/translate) from this mounted file, not
+# from env vars — only PGUSER/PGPASSWORD/*_API_KEY come from the
+# environment (see knowledge's internal/config package). Without this
+# ConfigMap the binary falls back to its built-in localhost defaults,
+# which don't resolve inside the pod.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ include "knowledge.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ include "knowledge.fullname" . }}"
+    component: configmap
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+data:
+  config.yaml: |
+    qdrant:
+      url: {{ .Values.knowledge.qdrant.url | quote }}
+      collection: knowledge
+      searchMinScore: 0.4
+    postgres:
+      host: {{ .Values.knowledge.database.host | quote }}
+      port: {{ .Values.knowledge.database.port | quote }}
+      database: {{ .Values.knowledge.database.name | quote }}
+    embeddings:
+      provider: ollama
+      baseURL: {{ .Values.knowledge.embeddings.baseUrl | quote }}
+      model: {{ .Values.knowledge.embeddings.model | quote }}
+      dimension: {{ .Values.knowledge.embeddings.dimension }}
+    chat:
+      provider: ollama
+      baseURL: {{ .Values.knowledge.chat.baseUrl | quote }}
+      model: {{ .Values.knowledge.chat.model | quote }}
+      numCtx: {{ .Values.knowledge.chat.numCtx }}
+    generate:
+      provider: ollama
+      baseURL: {{ .Values.knowledge.generate.baseUrl | quote }}
+      model: {{ .Values.knowledge.generate.model | quote }}
+    knowledgeLanguage: English
+    translate:
+      provider: ollama
+      baseURL: {{ .Values.knowledge.translate.baseUrl | quote }}
+      model: {{ .Values.knowledge.translate.model | quote }}
 
 ---
 apiVersion: batch/v1
@@ -60,15 +105,6 @@ spec:
         imagePullPolicy: IfNotPresent
         command: ["/knowledge", "migrate"]
         env:
-        - name: PGHOST
-          value: {{ .Values.knowledge.database.host | quote }}
-        - name: PGPORT
-          value: {{ .Values.knowledge.database.port | quote }}
-        - name: PGDATABASE
-          valueFrom:
-            secretKeyRef:
-              name: "{{ include "knowledge.fullname" . }}"
-              key: PGDATABASE
         - name: PGUSER
           valueFrom:
             secretKeyRef:
@@ -79,16 +115,14 @@ spec:
             secretKeyRef:
               name: "{{ include "knowledge.fullname" . }}"
               key: PGPASSWORD
-        - name: QDRANT_URL
-          value: {{ .Values.knowledge.qdrant.url | quote }}
-        - name: EMBEDDINGS_PROVIDER
-          value: ollama
-        - name: EMBEDDINGS_BASE_URL
-          value: {{ .Values.knowledge.embeddings.baseUrl | quote }}
-        - name: EMBEDDINGS_MODEL
-          value: {{ .Values.knowledge.embeddings.model | quote }}
-        - name: EMBEDDINGS_DIMENSION
-          value: {{ .Values.knowledge.embeddings.dimension | quote }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/knowledge
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: "{{ include "knowledge.fullname" . }}"
 
 ---
 apiVersion: apps/v1
@@ -120,15 +154,6 @@ spec:
         - name: http
           containerPort: 8300
         env:
-        - name: PGHOST
-          value: {{ .Values.knowledge.database.host | quote }}
-        - name: PGPORT
-          value: {{ .Values.knowledge.database.port | quote }}
-        - name: PGDATABASE
-          valueFrom:
-            secretKeyRef:
-              name: "{{ include "knowledge.fullname" . }}"
-              key: PGDATABASE
         - name: PGUSER
           valueFrom:
             secretKeyRef:
@@ -139,22 +164,6 @@ spec:
             secretKeyRef:
               name: "{{ include "knowledge.fullname" . }}"
               key: PGPASSWORD
-        - name: QDRANT_URL
-          value: {{ .Values.knowledge.qdrant.url | quote }}
-        - name: EMBEDDINGS_PROVIDER
-          value: ollama
-        - name: EMBEDDINGS_BASE_URL
-          value: {{ .Values.knowledge.embeddings.baseUrl | quote }}
-        - name: EMBEDDINGS_MODEL
-          value: {{ .Values.knowledge.embeddings.model | quote }}
-        - name: EMBEDDINGS_DIMENSION
-          value: {{ .Values.knowledge.embeddings.dimension | quote }}
-        - name: CHAT_PROVIDER
-          value: ollama
-        - name: CHAT_BASE_URL
-          value: {{ .Values.knowledge.chat.baseUrl | quote }}
-        - name: CHAT_MODEL
-          value: {{ .Values.knowledge.chat.model | quote }}
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
@@ -163,6 +172,10 @@ spec:
         resources:
           limits:
             memory: 128Mi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/knowledge
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /health
@@ -177,6 +190,10 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
           failureThreshold: 6
+      volumes:
+      - name: config
+        configMap:
+          name: "{{ include "knowledge.fullname" . }}"
 
 ---
 apiVersion: v1

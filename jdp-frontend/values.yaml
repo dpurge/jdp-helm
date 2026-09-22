@@ -26,7 +26,7 @@ planka:
     port: 5432
 
 knowledge:
-  image: ghcr.io/dpurge/knowledge:2026.9.2
+  image: ghcr.io/dpurge/knowledge:2026.9.5
   hostname: knowledge.home.arpa
   database:
     name: knowledge
@@ -42,4 +42,14 @@ knowledge:
     dimension: 1024
   chat:
     baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
-    model: llama3-chatqa:8b
+    model: gemma4:12b
+    # gemma4:12b's Ollama runtime default context is 4096 tokens, far below
+    # its trained max. Full retrieved documents go straight into the
+    # prompt, so the larger window matters (ported from k8s-lab).
+    numCtx: 8192
+  generate:
+    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    model: gemma4:12b
+  translate:
+    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    model: rinex20/translategemma3:12b
