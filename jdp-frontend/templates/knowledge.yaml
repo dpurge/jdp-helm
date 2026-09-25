@@ -13,6 +13,18 @@ spec:
     name: "{{ include "knowledge.fullname" . }}"
     creationPolicy: Owner
   data:
+  - secretKey: PGHOST
+    remoteRef:
+      key: knowledge
+      property: postgres-host
+  - secretKey: PGPORT
+    remoteRef:
+      key: knowledge
+      property: postgres-port
+  - secretKey: PGDATABASE
+    remoteRef:
+      key: knowledge
+      property: postgres-database
   - secretKey: PGUSER
     remoteRef:
       key: knowledge
@@ -21,14 +33,18 @@ spec:
     remoteRef:
       key: knowledge
       property: postgres-password
+  - secretKey: QDRANT_URL
+    remoteRef:
+      key: knowledge
+      property: qdrant-url
 
 ---
-# knowledge reads all non-credential settings (Qdrant, Postgres host/port/
-# database, embeddings/chat/generate/translate) from this mounted file, not
-# from env vars — only PGUSER/PGPASSWORD/*_API_KEY come from the
-# environment (see knowledge's internal/config package). Without this
-# ConfigMap the binary falls back to its built-in localhost defaults,
-# which don't resolve inside the pod.
+# knowledge reads qdrant.collection/searchMinScore and
+# embeddings/chat/generate/translate from this mounted file, not env vars
+# (see knowledge's internal/config package) — Postgres connection details
+# and QDRANT_URL come from the environment instead (see the Secret above),
+# so this ConfigMap is never needed by the migrate Job below and stays a
+# normal, Helm-tracked resource.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -37,20 +53,11 @@ metadata:
   labels:
     app: "{{ include "knowledge.fullname" . }}"
     component: configmap
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
 data:
   config.yaml: |
     qdrant:
-      url: {{ .Values.knowledge.qdrant.url | quote }}
       collection: knowledge
       searchMinScore: 0.4
-    postgres:
-      host: {{ .Values.knowledge.database.host | quote }}
-      port: {{ .Values.knowledge.database.port | quote }}
-      database: {{ .Values.knowledge.database.name | quote }}
     embeddings:
       provider: ollama
       baseURL: {{ .Values.knowledge.embeddings.baseUrl | quote }}
@@ -104,7 +111,26 @@ spec:
         image: "{{ .Values.knowledge.image }}"
         imagePullPolicy: IfNotPresent
         command: ["/knowledge", "migrate"]
+        # No ConfigMap mount: migrate only needs Postgres + Qdrant URL,
+        # sourced entirely from this Secret — the same mechanism already
+        # used successfully for PGUSER/PGPASSWORD, so this hook never
+        # depends on any non-hook resource existing first.
         env:
+        - name: PGHOST
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: PGHOST
+        - name: PGPORT
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: PGPORT
+        - name: PGDATABASE
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: PGDATABASE
         - name: PGUSER
           valueFrom:
             secretKeyRef:
@@ -115,14 +141,11 @@ spec:
             secretKeyRef:
               name: "{{ include "knowledge.fullname" . }}"
               key: PGPASSWORD
-        volumeMounts:
-        - name: config
-          mountPath: /etc/knowledge
-          readOnly: true
-      volumes:
-      - name: config
-        configMap:
-          name: "{{ include "knowledge.fullname" . }}"
+        - name: QDRANT_URL
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: QDRANT_URL
 
 ---
 apiVersion: apps/v1
@@ -154,6 +177,21 @@ spec:
         - name: http
           containerPort: 8300
         env:
+        - name: PGHOST
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: PGHOST
+        - name: PGPORT
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: PGPORT
+        - name: PGDATABASE
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: PGDATABASE
         - name: PGUSER
           valueFrom:
             secretKeyRef:
@@ -164,6 +202,11 @@ spec:
             secretKeyRef:
               name: "{{ include "knowledge.fullname" . }}"
               key: PGPASSWORD
+        - name: QDRANT_URL
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: QDRANT_URL
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false

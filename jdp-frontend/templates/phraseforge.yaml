@@ -13,6 +13,18 @@ spec:
     name: "{{ include "phraseforge.fullname" . }}"
     creationPolicy: Owner
   data:
+  - secretKey: PGHOST
+    remoteRef:
+      key: phraseforge
+      property: postgres-host
+  - secretKey: PGPORT
+    remoteRef:
+      key: phraseforge
+      property: postgres-port
+  - secretKey: PGDATABASE
+    remoteRef:
+      key: phraseforge
+      property: postgres-database
   - secretKey: PGUSER
     remoteRef:
       key: phraseforge
@@ -21,14 +33,75 @@ spec:
     remoteRef:
       key: phraseforge
       property: postgres-password
-  - secretKey: PGDATABASE
-    remoteRef:
-      key: phraseforge
-      property: postgres-database
-  - secretKey: LLM_API_KEY
+  - secretKey: OLLAMA_API_KEY
     remoteRef:
       key: phraseforge
       property: llm-api-key
+
+---
+# phraseforge reads bindAddr/providers/transcription/translation/title/
+# processText/processDialog/generateVocabulary/generateModels from
+# this mounted file, not env vars (see phraseforge's internal/config
+# package) — PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD/SESSION_KEY/
+# OLLAMA_API_KEY all come from the environment instead, so this ConfigMap
+# is never needed by the migrate Job below and stays a normal, Helm-tracked
+# resource. Every purpose is templated explicitly (see values.yaml's own
+# comment) so an operator edits the deployed prompt/timeout text via
+# values.yaml, without a rebuild.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ include "phraseforge.fullname" . }}"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: "{{ include "phraseforge.fullname" . }}"
+    component: configmap
+data:
+  config.yaml: |
+    bindAddr: {{ .Values.phraseforge.bindAddr | quote }}
+    providers:
+      ollama:
+        baseURL: {{ .Values.phraseforge.providers.ollama.baseUrl | quote }}
+    transcription:
+      provider: {{ .Values.phraseforge.transcription.provider | quote }}
+      model: {{ .Values.phraseforge.transcription.model | quote }}
+      timeoutSeconds: {{ .Values.phraseforge.transcription.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.transcription.prompt | quote }}
+    translation:
+      provider: {{ .Values.phraseforge.translation.provider | quote }}
+      model: {{ .Values.phraseforge.translation.model | quote }}
+      timeoutSeconds: {{ .Values.phraseforge.translation.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.translation.prompt | quote }}
+    title:
+      provider: {{ .Values.phraseforge.title.provider | quote }}
+      model: {{ .Values.phraseforge.title.model | quote }}
+      numCtx: {{ .Values.phraseforge.title.numCtx }}
+      timeoutSeconds: {{ .Values.phraseforge.title.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.title.prompt | quote }}
+    processText:
+      provider: {{ .Values.phraseforge.processText.provider | quote }}
+      model: {{ .Values.phraseforge.processText.model | quote }}
+      numCtx: {{ .Values.phraseforge.processText.numCtx }}
+      timeoutSeconds: {{ .Values.phraseforge.processText.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.processText.prompt | quote }}
+    processDialog:
+      provider: {{ .Values.phraseforge.processDialog.provider | quote }}
+      model: {{ .Values.phraseforge.processDialog.model | quote }}
+      numCtx: {{ .Values.phraseforge.processDialog.numCtx }}
+      timeoutSeconds: {{ .Values.phraseforge.processDialog.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.processDialog.prompt | quote }}
+    generateVocabulary:
+      provider: {{ .Values.phraseforge.generateVocabulary.provider | quote }}
+      model: {{ .Values.phraseforge.generateVocabulary.model | quote }}
+      numCtx: {{ .Values.phraseforge.generateVocabulary.numCtx }}
+      timeoutSeconds: {{ .Values.phraseforge.generateVocabulary.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.generateVocabulary.prompt | quote }}
+    generateModels:
+      provider: {{ .Values.phraseforge.generateModels.provider | quote }}
+      model: {{ .Values.phraseforge.generateModels.model | quote }}
+      numCtx: {{ .Values.phraseforge.generateModels.numCtx }}
+      timeoutSeconds: {{ .Values.phraseforge.generateModels.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.generateModels.prompt | quote }}
 
 ---
 apiVersion: batch/v1
@@ -63,11 +136,21 @@ spec:
         image: "{{ .Values.phraseforge.image }}"
         imagePullPolicy: IfNotPresent
         command: ["/phraseforge", "migrate"]
+        # No ConfigMap mount: migrate only needs Postgres, sourced entirely
+        # from this Secret — the same mechanism already used successfully
+        # for PGUSER/PGPASSWORD, so this hook never depends on any
+        # non-hook resource existing first.
         env:
         - name: PGHOST
-          value: {{ .Values.phraseforge.database.host | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "phraseforge.fullname" . }}"
+              key: PGHOST
         - name: PGPORT
-          value: {{ .Values.phraseforge.database.port | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "phraseforge.fullname" . }}"
+              key: PGPORT
         - name: PGDATABASE
           valueFrom:
             secretKeyRef:
@@ -114,10 +197,18 @@ spec:
         - name: http
           containerPort: 8090
         env:
+        - name: CONFIG_FILE
+          value: /etc/phraseforge/config.yaml
         - name: PGHOST
-          value: {{ .Values.phraseforge.database.host | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "phraseforge.fullname" . }}"
+              key: PGHOST
         - name: PGPORT
-          value: {{ .Values.phraseforge.database.port | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "phraseforge.fullname" . }}"
+              key: PGPORT
         - name: PGDATABASE
           valueFrom:
             secretKeyRef:
@@ -133,24 +224,16 @@ spec:
             secretKeyRef:
               name: "{{ include "phraseforge.fullname" . }}"
               key: PGPASSWORD
-        - name: BIND_ADDR
-          value: 0.0.0.0:8090
         - name: SESSION_KEY
           valueFrom:
             secretKeyRef:
               name: "{{ include "phraseforge.fullname" . }}"
               key: PGPASSWORD
-        - name: LLM_PROVIDER
-          value: {{ .Values.phraseforge.llm.provider | quote }}
-        - name: LLM_BASE_URL
-          value: {{ .Values.phraseforge.llm.baseUrl | quote }}
-        - name: LLM_MODEL
-          value: {{ .Values.phraseforge.llm.model | quote }}
-        - name: LLM_API_KEY
+        - name: OLLAMA_API_KEY
           valueFrom:
             secretKeyRef:
               name: "{{ include "phraseforge.fullname" . }}"
-              key: LLM_API_KEY
+              key: OLLAMA_API_KEY
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
@@ -159,6 +242,10 @@ spec:
         resources:
           limits:
             memory: 128Mi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/phraseforge
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /health
@@ -173,6 +260,10 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
           failureThreshold: 6
+      volumes:
+      - name: config
+        configMap:
+          name: "{{ include "phraseforge.fullname" . }}"
 
 ---
 apiVersion: v1

@@ -81,3 +81,26 @@ cat secret.yaml | kubeseal --controller-namespace jdp-backend --controller-name 
 ```sh
 kubectl get secret jdp-backend-headlamp-admin -n backend -o jsonpath='{.data.token}' | base64 -d
 ```
+
+## OpenBao secret keys
+
+Every `ExternalSecret` in this repo reads from the `kv` (KV v2) mount on
+OpenBao, under the key named below. Create each key with exactly these
+properties before installing/upgrading the corresponding chart, or the
+`ExternalSecret` will fail to sync.
+
+| Chart | OpenBao key | Required properties |
+| --- | --- | --- |
+| jdp-frontend | `phraseforge` | `postgres-host`, `postgres-port`, `postgres-database`, `postgres-username`, `postgres-password`, `llm-api-key` |
+| jdp-frontend | `knowledge` | `postgres-host`, `postgres-port`, `postgres-database`, `postgres-username`, `postgres-password`, `qdrant-url` |
+| jdp-frontend | `pgadmin` | `admin-email`, `admin-password` |
+| jdp-frontend | `planka` | `secret-key`, `database-username`, `database-password`, `admin-username`, `admin-password`, `admin-email` |
+| jdp-workflow | `workflows` | Not verified from this chart alone — its `ExternalSecret` does a whole-key `dataFrom.extract`, and nothing in `jdp-workflow/templates/workflows.yaml` references specific property names by `secretKeyRef`. Confirm required properties against whatever actually reads this Secret (an Argo `WorkflowTemplate`/`Sensor` elsewhere) before relying on this row. |
+
+`phraseforge` and `knowledge` list every property explicitly (their
+`ExternalSecret`s use per-key `data:` entries, not `dataFrom.extract`), so
+those two rows are exact. `pgadmin` and `planka` use `dataFrom.extract`
+(the whole OpenBao key is copied through as-is), so their rows list only
+the properties actually consumed downstream (verified against the
+Deployment env / `ExternalSecret` template in each file) — extra
+properties in OpenBao are harmless but unnecessary.
