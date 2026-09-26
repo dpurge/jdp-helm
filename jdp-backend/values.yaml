@@ -44,7 +44,6 @@ ollama:
   maxLoadedModels: 2
   # Pulled by the post-install/post-upgrade hook Job below.
   models:
-  - rinex20/translategemma3:12b
   - bge-m3
   - gemma4:12b
   storage:

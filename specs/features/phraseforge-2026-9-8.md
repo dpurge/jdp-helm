@@ -1,5 +1,5 @@
 ---
-title: Update phraseforge to 2026.9.7
+title: Update phraseforge to 2026.9.8
 kind: feature
 status: done
 version: 1
@@ -11,12 +11,12 @@ branch: main
 > host/port/database in the mounted ConfigMap) was replaced by
 > `specs/features/db-config-to-secret.md` after this shipped but failed a
 > real deploy. `providers`/`transcription`/`translation` and the image
-> bump to `2026.9.7` are unaffected and still current.
+> bump to `2026.9.8` are unaffected and still current.
 
 ## Problem / Motivation
 
 `k8s-lab`'s phraseforge source was refactored today (commit `9860633`, tag
-`phraseforge-v2026.9.7`) from all-env-var configuration to a mounted config
+`phraseforge-v2026.9.8`) from all-env-var configuration to a mounted config
 file (`CONFIG_FILE`, default `/etc/phraseforge/config.yaml`) for `bindAddr`,
 Postgres `host`/`port`/`database`, per-provider (`ollama`/`openrouter`)
 `baseURL`, and seven per-purpose LLM blocks (`transcription`, `translation`,
@@ -37,7 +37,7 @@ would fail to reach the real Ollama service.
 ## Acceptance Criteria
 
 - [ ] `jdp-frontend/values.yaml`'s `phraseforge.image` is
-  `ghcr.io/dpurge/phraseforge:2026.9.7`.
+  `ghcr.io/dpurge/phraseforge:2026.9.8`.
 - [ ] `phraseforge.database`, `phraseforge.providers.ollama.baseUrl`,
   `phraseforge.transcription`, `phraseforge.translation` are set in
   `values.yaml`, matching the shape and model choice in
@@ -136,7 +136,7 @@ would fail to reach the real Ollama service.
   `jdp-frontend/templates/_helpers.tpl`, rendering the `postgres:` block
   from `.database.{host,port,name}`.
 - `jdp-frontend/values.yaml`: bumped `phraseforge.image` to
-  `ghcr.io/dpurge/phraseforge:2026.9.7`; added `bindAddr`; replaced the old
+  `ghcr.io/dpurge/phraseforge:2026.9.8`; added `bindAddr`; replaced the old
   `llm:` block with `providers.ollama.baseUrl`, `transcription`
   (`ollama`/`gemma4:12b`), `translation` (`ollama`/`gemma4:12b`), matching
   `k8s-lab/phraseforge/k8s/configmap.yaml`; left
@@ -153,7 +153,7 @@ would fail to reach the real Ollama service.
     (postgres only, same shared template, `pre-install,pre-upgrade` /
     weight `-10` / `before-hook-creation`), mounted only by the migrate Job.
   - Migrate Job: dropped `PGHOST`/`PGPORT`/`PGDATABASE` env vars (the
-    2026.9.7 binary no longer reads them); added `CONFIG_FILE` env and the
+    2026.9.8 binary no longer reads them); added `CONFIG_FILE` env and the
     migrate-config volume mount; kept `PGUSER`/`PGPASSWORD`/hook
     weight/delete-policy unchanged.
   - Deployment: dropped `PGHOST`/`PGPORT`/`PGDATABASE`/`BIND_ADDR`/
