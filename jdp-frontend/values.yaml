@@ -22,12 +22,19 @@ phraseforge:
   providers:
     ollama:
       baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+      # Streamed calls fail if no output arrives within
+      # firstTokenTimeoutSeconds (model load + prompt eval, ~60s measured
+      # on this CPU-only node) or if output then stops for
+      # idleTimeoutSeconds. Needs phraseforge with streaming LLM calls.
+      firstTokenTimeoutSeconds: 300
+      idleTimeoutSeconds: 60
   # Every purpose's provider/model/numCtx/timeoutSeconds/prompt is declared
-  # explicitly here.
+  # explicitly here. timeoutSeconds is an overall backstop; the provider's
+  # first-token/idle limits above are what catch a hung call.
   transcription:
     provider: ollama
     model: gemma4:12b
-    timeoutSeconds: 120
+    timeoutSeconds: 1800
     prompt: |
       Create a romanized transcription for the source language content.
       Return only the transcription, preserving line breaks and structure.
@@ -35,7 +42,7 @@ phraseforge:
   translation:
     provider: ollama
     model: gemma4:12b
-    timeoutSeconds: 120
+    timeoutSeconds: 1800
     prompt: |
       Translate the source language content to the target language.
       Return only the translation, preserving line breaks and structure.
@@ -44,7 +51,7 @@ phraseforge:
     provider: ollama
     model: gemma4:12b
     numCtx: 8192
-    timeoutSeconds: 120
+    timeoutSeconds: 1800
     prompt: |
       You write a short, specific title for the given text.
       Respond with only the title text on a single line — no quotes, no punctuation at the end, no preamble.
@@ -52,7 +59,7 @@ phraseforge:
     provider: ollama
     model: gemma4:12b
     numCtx: 8192
-    timeoutSeconds: 300
+    timeoutSeconds: 1800
     prompt: |
       You reformat raw extracted text into clean Markdown prose suitable as a language-learning reading text.
       Remove navigation menus, ads, boilerplate, and unrelated content.
@@ -63,7 +70,7 @@ phraseforge:
     provider: ollama
     model: gemma4:12b
     numCtx: 8192
-    timeoutSeconds: 300
+    timeoutSeconds: 1800
     prompt: |
       You reformat raw extracted text into a clean dialog transcript in Markdown.
       Identify distinct speakers/turns and format each turn on its own line.
@@ -73,7 +80,7 @@ phraseforge:
     provider: ollama
     model: gemma4:12b
     numCtx: 8192
-    timeoutSeconds: 600
+    timeoutSeconds: 1800
     prompt: |
       You extract vocabulary and grammar items from the given text for a language learner.
       Respond ONLY with one item per line, in this exact format:
@@ -88,7 +95,7 @@ phraseforge:
     provider: ollama
     model: gemma4:12b
     numCtx: 8192
-    timeoutSeconds: 600
+    timeoutSeconds: 1800
     prompt: |
       You extract short grammar/sentence-pattern models from the given text for a language learner.
       Respond ONLY with one item per line, in this exact format:
@@ -99,27 +106,91 @@ phraseforge:
       - each of [transcription] and = translation is optional and must be omitted entirely (not left as empty brackets) when not applicable.
       Do not add commentary, a preamble, numbering, or code fences — only the item lines themselves.
       Build progresively longer coherent phrases illustrating patterns used in the text.
+  # One structured (JSON) call per vocabulary/models item per site locale;
+  # placeholders match prompt-eval: {{sourceLanguage}}, {{targetLanguage}},
+  # {{phrase}}, {{grammarPrompt}}, {{transcriptionPrompt}} (the two sections
+  # come from Admin > LLM > Language sections). Needs a phraseforge image
+  # with structured item translation.
+  vocabularyItem:
+    provider: ollama
+    model: gemma4:12b
+    timeoutSeconds: 1800
+    prompt: |
+      You are a translation system.
+
+      Return ONLY valid JSON without code fence, do not add explanations:
+
+      {
+        "phrase": "repeat the original phrase",
+        "grammar": "grammar tags attached to the original phrase, follow the description below; empty if unsure",
+        "transcription": "only include if transcription described below, otherwise empty",
+        "translation": "translation of the phrase into the specified language",
+        "notes": "usually empty, only used if translation requires clarification"
+      }
+
+      {{grammarPrompt}}
+
+      {{transcriptionPrompt}}
+
+      Translate from {{sourceLanguage}} to {{targetLanguage}}: {{phrase}}
+  modelsItem:
+    provider: ollama
+    model: gemma4:12b
+    timeoutSeconds: 1800
+    prompt: |
+      You are a translation system.
+
+      Return ONLY valid JSON without code fence, do not add explanations:
+
+      {
+        "phrase": "repeat the original phrase",
+        "transcription": "only include if transcription described below, otherwise empty",
+        "translation": "translation of the phrase into the specified language"
+      }
+
+      {{transcriptionPrompt}}
+
+      Translate from {{sourceLanguage}} to {{targetLanguage}}: {{phrase}}
 
 knowledge:
   image: ghcr.io/dpurge/knowledge:2026.9.7
   hostname: knowledge.home.arpa
   # Postgres host/port/database and the Qdrant URL come from the
   # OpenBao-backed Secret (see jdp-backend/README's OpenBao key table).
+  # Same shape as phraseforge: one entry per LLM provider, each purpose
+  # names one. Needs a knowledge image with the provider registry. Prompts
+  # are not set here, so the image's built-in prompts apply.
+  providers:
+    ollama:
+      baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+      # Streamed calls fail if no output arrives within
+      # firstTokenTimeoutSeconds (model load + prompt eval) or if output
+      # then stops for idleTimeoutSeconds.
+      firstTokenTimeoutSeconds: 300
+      idleTimeoutSeconds: 60
   embeddings:
-    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    provider: ollama
     model: bge-m3
     # bge-m3 produces 1024-dim dense embeddings
     dimension: 1024
+  # timeoutSeconds is each purpose's overall cap (a backstop).
   chat:
-    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    provider: ollama
     model: gemma4:12b
     # gemma4:12b's Ollama runtime default context is 4096 tokens, far below
     # its trained max. Full retrieved documents go straight into the
     # prompt, so the larger window matters (ported from k8s-lab).
     numCtx: 8192
-  generate:
-    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    timeoutSeconds: 1800
+  generateTitle:
+    provider: ollama
     model: gemma4:12b
+    timeoutSeconds: 1800
+  generateSummary:
+    provider: ollama
+    model: gemma4:12b
+    timeoutSeconds: 1800
   translate:
-    baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+    provider: ollama
     model: gemma4:12b
+    timeoutSeconds: 1800

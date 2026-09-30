@@ -62,6 +62,8 @@ data:
     providers:
       ollama:
         baseURL: {{ .Values.phraseforge.providers.ollama.baseUrl | quote }}
+        firstTokenTimeoutSeconds: {{ .Values.phraseforge.providers.ollama.firstTokenTimeoutSeconds }}
+        idleTimeoutSeconds: {{ .Values.phraseforge.providers.ollama.idleTimeoutSeconds }}
     transcription:
       provider: {{ .Values.phraseforge.transcription.provider | quote }}
       model: {{ .Values.phraseforge.transcription.model | quote }}
@@ -102,6 +104,16 @@ data:
       numCtx: {{ .Values.phraseforge.generateModels.numCtx }}
       timeoutSeconds: {{ .Values.phraseforge.generateModels.timeoutSeconds }}
       prompt: {{ .Values.phraseforge.generateModels.prompt | quote }}
+    vocabularyItem:
+      provider: {{ .Values.phraseforge.vocabularyItem.provider | quote }}
+      model: {{ .Values.phraseforge.vocabularyItem.model | quote }}
+      timeoutSeconds: {{ .Values.phraseforge.vocabularyItem.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.vocabularyItem.prompt | quote }}
+    modelsItem:
+      provider: {{ .Values.phraseforge.modelsItem.provider | quote }}
+      model: {{ .Values.phraseforge.modelsItem.model | quote }}
+      timeoutSeconds: {{ .Values.phraseforge.modelsItem.timeoutSeconds }}
+      prompt: {{ .Values.phraseforge.modelsItem.prompt | quote }}
 
 ---
 apiVersion: batch/v1

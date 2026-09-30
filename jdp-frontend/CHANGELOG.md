@@ -8,6 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- knowledge: config moves to the phraseforge shape — one `providers.ollama`
+  entry (`baseUrl`, `firstTokenTimeoutSeconds: 300`, `idleTimeoutSeconds:
+  60`) and per-purpose `embeddings`, `chat`, `generateTitle`,
+  `generateSummary`, `translate` (each with `provider`, `model`,
+  `timeoutSeconds`); the per-section `baseUrl` and the `generate` section
+  are gone. Requires a knowledge image with the provider registry (see
+  `k8s-lab/specs/features/knowledge-llm-providers-config.md`) — that image
+  refuses to start with the old ConfigMap shape.
+- phraseforge: new `vocabularyItem` and `modelsItem` purposes (provider,
+  model, `timeoutSeconds: 1800`, prompt template) for one structured JSON
+  call per vocabulary/models item per site locale, with prompt-eval's
+  placeholders. Requires a phraseforge image with structured item
+  translation (see
+  `k8s-lab/specs/features/phraseforge-structured-item-translation.md`).
+- phraseforge: Ollama provider gains `firstTokenTimeoutSeconds: 300` and
+  `idleTimeoutSeconds: 60` (streamed calls fail on lack of progress), and
+  every purpose's `timeoutSeconds` is raised to `1800` as an overall
+  backstop — translations on the CPU-only node take ~300s and were all
+  failing at 120s. Requires a phraseforge image with streaming LLM calls
+  (see `k8s-lab/specs/features/llm-streaming-progress-timeout.md`); older
+  images ignore the two new keys.
 - phraseforge: bumped to `2026.9.7`; LLM provider/per-purpose settings
   (transcription/translation) now come from a mounted ConfigMap, matching
   the app's new config schema.

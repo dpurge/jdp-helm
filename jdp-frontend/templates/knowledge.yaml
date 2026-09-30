@@ -58,25 +58,33 @@ data:
     qdrant:
       collection: knowledge
       searchMinScore: 0.4
+    providers:
+      ollama:
+        baseURL: {{ .Values.knowledge.providers.ollama.baseUrl | quote }}
+        firstTokenTimeoutSeconds: {{ .Values.knowledge.providers.ollama.firstTokenTimeoutSeconds }}
+        idleTimeoutSeconds: {{ .Values.knowledge.providers.ollama.idleTimeoutSeconds }}
     embeddings:
-      provider: ollama
-      baseURL: {{ .Values.knowledge.embeddings.baseUrl | quote }}
+      provider: {{ .Values.knowledge.embeddings.provider | quote }}
       model: {{ .Values.knowledge.embeddings.model | quote }}
       dimension: {{ .Values.knowledge.embeddings.dimension }}
     chat:
-      provider: ollama
-      baseURL: {{ .Values.knowledge.chat.baseUrl | quote }}
+      provider: {{ .Values.knowledge.chat.provider | quote }}
       model: {{ .Values.knowledge.chat.model | quote }}
       numCtx: {{ .Values.knowledge.chat.numCtx }}
-    generate:
-      provider: ollama
-      baseURL: {{ .Values.knowledge.generate.baseUrl | quote }}
-      model: {{ .Values.knowledge.generate.model | quote }}
+      timeoutSeconds: {{ .Values.knowledge.chat.timeoutSeconds }}
+    generateTitle:
+      provider: {{ .Values.knowledge.generateTitle.provider | quote }}
+      model: {{ .Values.knowledge.generateTitle.model | quote }}
+      timeoutSeconds: {{ .Values.knowledge.generateTitle.timeoutSeconds }}
+    generateSummary:
+      provider: {{ .Values.knowledge.generateSummary.provider | quote }}
+      model: {{ .Values.knowledge.generateSummary.model | quote }}
+      timeoutSeconds: {{ .Values.knowledge.generateSummary.timeoutSeconds }}
     knowledgeLanguage: English
     translate:
-      provider: ollama
-      baseURL: {{ .Values.knowledge.translate.baseUrl | quote }}
+      provider: {{ .Values.knowledge.translate.provider | quote }}
       model: {{ .Values.knowledge.translate.model | quote }}
+      timeoutSeconds: {{ .Values.knowledge.translate.timeoutSeconds }}
 
 ---
 apiVersion: batch/v1
