@@ -14,7 +14,7 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.9.8
+  image: ghcr.io/dpurge/phraseforge:2026.9.9
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
   # Postgres host/port/database come from the OpenBao-backed Secret (see
@@ -153,7 +153,7 @@ phraseforge:
       Translate from {{sourceLanguage}} to {{targetLanguage}}: {{phrase}}
 
 knowledge:
-  image: ghcr.io/dpurge/knowledge:2026.9.7
+  image: ghcr.io/dpurge/knowledge:2026.9.8
   hostname: knowledge.home.arpa
   # Postgres host/port/database and the Qdrant URL come from the
   # OpenBao-backed Secret (see jdp-backend/README's OpenBao key table).
