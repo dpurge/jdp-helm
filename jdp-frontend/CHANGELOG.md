@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- phraseforge: new `ingest.maxContentBytes: 204800` (200 KiB; the image's own
+  default is 24 KiB) and a `maxAttempts: 3` on every purpose. Long texts and
+  dialogs are processed in chunks that fit each purpose's context window,
+  one LLM call per chunk, and one long ingest occupies the single job worker
+  until it finishes; `maxAttempts` is the total tries per LLM call, shared by
+  replies sent back to the model for correction and retries of transient
+  failures. Requires a phraseforge image with chunked ingest and the retry
+  budget (see `k8s-lab/specs/features/phraseforge-long-text-ingest.md`,
+  `phraseforge-item-correction-retry-budget.md` and
+  `phraseforge-llm-transient-retry.md`); older images ignore both keys.
 - knowledge: config moves to the phraseforge shape — one `providers.ollama`
   entry (`baseUrl`, `firstTokenTimeoutSeconds: 300`, `idleTimeoutSeconds:
   60`) and per-purpose `embeddings`, `chat`, `generateTitle`,

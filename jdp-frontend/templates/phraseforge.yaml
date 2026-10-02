@@ -64,55 +64,66 @@ data:
         baseURL: {{ .Values.phraseforge.providers.ollama.baseUrl | quote }}
         firstTokenTimeoutSeconds: {{ .Values.phraseforge.providers.ollama.firstTokenTimeoutSeconds }}
         idleTimeoutSeconds: {{ .Values.phraseforge.providers.ollama.idleTimeoutSeconds }}
+    ingest:
+      maxContentBytes: {{ .Values.phraseforge.ingest.maxContentBytes }}
     transcription:
       provider: {{ .Values.phraseforge.transcription.provider | quote }}
       model: {{ .Values.phraseforge.transcription.model | quote }}
       timeoutSeconds: {{ .Values.phraseforge.transcription.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.transcription.maxAttempts }}
       prompt: {{ .Values.phraseforge.transcription.prompt | quote }}
     translation:
       provider: {{ .Values.phraseforge.translation.provider | quote }}
       model: {{ .Values.phraseforge.translation.model | quote }}
       timeoutSeconds: {{ .Values.phraseforge.translation.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.translation.maxAttempts }}
       prompt: {{ .Values.phraseforge.translation.prompt | quote }}
     title:
       provider: {{ .Values.phraseforge.title.provider | quote }}
       model: {{ .Values.phraseforge.title.model | quote }}
       numCtx: {{ .Values.phraseforge.title.numCtx }}
       timeoutSeconds: {{ .Values.phraseforge.title.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.title.maxAttempts }}
       prompt: {{ .Values.phraseforge.title.prompt | quote }}
     processText:
       provider: {{ .Values.phraseforge.processText.provider | quote }}
       model: {{ .Values.phraseforge.processText.model | quote }}
       numCtx: {{ .Values.phraseforge.processText.numCtx }}
       timeoutSeconds: {{ .Values.phraseforge.processText.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.processText.maxAttempts }}
       prompt: {{ .Values.phraseforge.processText.prompt | quote }}
     processDialog:
       provider: {{ .Values.phraseforge.processDialog.provider | quote }}
       model: {{ .Values.phraseforge.processDialog.model | quote }}
       numCtx: {{ .Values.phraseforge.processDialog.numCtx }}
       timeoutSeconds: {{ .Values.phraseforge.processDialog.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.processDialog.maxAttempts }}
       prompt: {{ .Values.phraseforge.processDialog.prompt | quote }}
     generateVocabulary:
       provider: {{ .Values.phraseforge.generateVocabulary.provider | quote }}
       model: {{ .Values.phraseforge.generateVocabulary.model | quote }}
       numCtx: {{ .Values.phraseforge.generateVocabulary.numCtx }}
       timeoutSeconds: {{ .Values.phraseforge.generateVocabulary.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.generateVocabulary.maxAttempts }}
       prompt: {{ .Values.phraseforge.generateVocabulary.prompt | quote }}
     generateModels:
       provider: {{ .Values.phraseforge.generateModels.provider | quote }}
       model: {{ .Values.phraseforge.generateModels.model | quote }}
       numCtx: {{ .Values.phraseforge.generateModels.numCtx }}
       timeoutSeconds: {{ .Values.phraseforge.generateModels.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.generateModels.maxAttempts }}
       prompt: {{ .Values.phraseforge.generateModels.prompt | quote }}
     vocabularyItem:
       provider: {{ .Values.phraseforge.vocabularyItem.provider | quote }}
       model: {{ .Values.phraseforge.vocabularyItem.model | quote }}
       timeoutSeconds: {{ .Values.phraseforge.vocabularyItem.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.vocabularyItem.maxAttempts }}
       prompt: {{ .Values.phraseforge.vocabularyItem.prompt | quote }}
     modelsItem:
       provider: {{ .Values.phraseforge.modelsItem.provider | quote }}
       model: {{ .Values.phraseforge.modelsItem.model | quote }}
       timeoutSeconds: {{ .Values.phraseforge.modelsItem.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.modelsItem.maxAttempts }}
       prompt: {{ .Values.phraseforge.modelsItem.prompt | quote }}
 
 ---
