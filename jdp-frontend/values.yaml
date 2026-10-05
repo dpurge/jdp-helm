@@ -14,7 +14,7 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.9.9
+  image: ghcr.io/dpurge/phraseforge:2026.10.1
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
   # Postgres host/port/database come from the OpenBao-backed Secret (see
