@@ -14,31 +14,16 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.10.1
+  image: ghcr.io/dpurge/phraseforge:2026.10.2
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
-  # Postgres host/port/database come from the OpenBao-backed Secret (see
-  # jdp-backend/README's OpenBao key table), not from values.yaml.
   providers:
     ollama:
       baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
-      # Streamed calls fail if no output arrives within
-      # firstTokenTimeoutSeconds (model load + prompt eval, ~60s measured
-      # on this CPU-only node) or if output then stops for
-      # idleTimeoutSeconds. Needs phraseforge with streaming LLM calls.
       firstTokenTimeoutSeconds: 300
       idleTimeoutSeconds: 60
-  # Largest raw content (bytes) one ingest request may carry (200 KiB).
-  # Long content is processed in chunks that fit each purpose's context
-  # window, one LLM call per chunk (minutes each on this CPU-only node)
-  # and one job at a time, so a big ingest holds the job queue until it
-  # finishes - lower this if that hurts. Needs a phraseforge image with
-  # chunked ingest.
   ingest:
     maxContentBytes: 204800
-  # Every purpose's provider/model/numCtx/timeoutSeconds/maxAttempts/prompt is declared
-  # explicitly here. timeoutSeconds is an overall backstop; the provider's
-  # first-token/idle limits above are what catch a hung call.
   transcription:
     provider: ollama
     model: gemma4:12b
@@ -232,11 +217,6 @@ phraseforge:
       لَنْ تَكُونَ هَذِهِ النِّهَايَةَ [lan takūna hāḏihi n-nihāya] = to nie będzie koniec
       سَأُوَاصِلُ النِّضَالَ [saʾuwāṣilu n-niḍāl] = będę kontynuować walkę
       سَأُوَاصِلُ النِّضَالَ مِنْ أَجْلِ تَحْقِيقِ أَحْلَامِي [saʾuwāṣilu n-niḍāla min aǧli taḥqīqi aḥlāmī] = będę kontynuować walkę o realizację moich marzeń
-  # One structured (JSON) call per vocabulary/models item per site locale;
-  # placeholders match prompt-eval: {{sourceLanguage}}, {{targetLanguage}},
-  # {{phrase}}, {{grammarPrompt}}, {{transcriptionPrompt}} (the two sections
-  # come from Admin > LLM > Language sections). Needs a phraseforge image
-  # with structured item translation.
   vocabularyItem:
     provider: ollama
     model: gemma4:12b
@@ -298,17 +278,9 @@ phraseforge:
 knowledge:
   image: ghcr.io/dpurge/knowledge:2026.9.8
   hostname: knowledge.home.arpa
-  # Postgres host/port/database and the Qdrant URL come from the
-  # OpenBao-backed Secret (see jdp-backend/README's OpenBao key table).
-  # Same shape as phraseforge: one entry per LLM provider, each purpose
-  # names one. Needs a knowledge image with the provider registry. Prompts
-  # are not set here, so the image's built-in prompts apply.
   providers:
     ollama:
       baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
-      # Streamed calls fail if no output arrives within
-      # firstTokenTimeoutSeconds (model load + prompt eval) or if output
-      # then stops for idleTimeoutSeconds.
       firstTokenTimeoutSeconds: 300
       idleTimeoutSeconds: 60
   embeddings:
@@ -316,13 +288,11 @@ knowledge:
     model: bge-m3
     # bge-m3 produces 1024-dim dense embeddings
     dimension: 1024
-  # timeoutSeconds is each purpose's overall cap (a backstop).
   chat:
     provider: ollama
     model: gemma4:12b
     # gemma4:12b's Ollama runtime default context is 4096 tokens, far below
-    # its trained max. Full retrieved documents go straight into the
-    # prompt, so the larger window matters (ported from k8s-lab).
+    # its trained max.
     numCtx: 8192
     timeoutSeconds: 1800
   generateTitle:
