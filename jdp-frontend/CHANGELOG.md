@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- phraseforge: the `transcription`, `generateVocabulary` and `generateModels` prompts
+  carry the new `{{transcriptionPrompt}}` / `{{grammarPrompt}}` placeholders, which the
+  image fills from the source language's snippets (Admin > Languages); the rest of
+  each prompt is unchanged. A prompt without a placeholder does not use the
+  snippet. Requires a phraseforge image with the Languages tab and snippet
+  rendering for every prompt kind (see
+  `k8s-lab/specs/features/phraseforge-prompt-snippets.md`); an older image would send
+  the placeholders to the model as text.
 - phraseforge: new `ingest.maxContentBytes: 204800` (200 KiB; the image's own
   default is 24 KiB) and a `maxAttempts: 3` on every purpose. Long texts and
   dialogs are processed in chunks that fit each purpose's context window,
