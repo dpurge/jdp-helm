@@ -14,7 +14,7 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.10.2
+  image: ghcr.io/dpurge/phraseforge:2026.10.5
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
   providers:
