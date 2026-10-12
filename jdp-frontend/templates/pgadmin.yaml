@@ -88,8 +88,13 @@ spec:
               # without it, exec() of python3/gunicorn fails with EPERM.
               add: [NET_BIND_SERVICE]
           resources:
-            limits:
+            requests:
               memory: 256Mi
+            limits:
+              # pgAdmin 9.x keeps a gunicorn worker plus its in-memory state;
+              # 256Mi OOM-kills it under load (loading a large query result),
+              # which surfaces as a 502 from Traefik.
+              memory: 1Gi
           volumeMounts:
           - name: "config"
             mountPath: /pgadmin4/servers.json
@@ -103,7 +108,9 @@ spec:
           name: "{{ include "pgadmin.fullname" . }}"
       - name: "data"
         emptyDir:
-          sizeLimit: 10Mi
+          # /var/lib/pgadmin holds pgadmin4.db (sessions, saved queries and
+          # query history); 10Mi is easily exceeded and would evict the pod.
+          sizeLimit: 256Mi
 
 ---
 apiVersion: v1
