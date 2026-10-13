@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- phraseforge: the `transcription`, `generateVocabulary`, `generateModels`,
+  `vocabularyItem` and `modelsItem` prompts are the current defaults of the
+  phraseforge image again (the five were behind them). The transcription prompt and
+  the `[transcription]` rule of the vocabulary and models prompts no longer name a
+  transcription system or a script: the rules for a language come from its snippet
+  (Admin > Languages), and the Arabic examples follow the Arabic snippet. The item
+  prompts gain the usage, example, new-sense and rewrite parts, and the
+  vocabulary prompt returns `| usage` instead of `= translation`. Requires the
+  phraseforge image of this release (a vocabulary list is parsed in the new
+  format, and an older image would send the new placeholders to the model as text);
+  the image tag is not changed here. The migrate Job (a pre-upgrade hook) also
+  drops `llm_prompts.prompt` and creates `vocabulary_hidden_phrases` before the new
+  pods start; prompt text saved in Admin > LLM is not kept, Admin > LLM stores only
+  provider, model, thinking and timeout.
 - phraseforge: the `transcription`, `generateVocabulary` and `generateModels` prompts
   carry the new `{{transcriptionPrompt}}` / `{{grammarPrompt}}` placeholders, which the
   image fills from the source language's snippets (Admin > Languages); the rest of

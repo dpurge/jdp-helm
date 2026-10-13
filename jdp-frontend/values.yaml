@@ -14,7 +14,7 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.10.5
+  image: ghcr.io/dpurge/phraseforge:2026.10.6
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
   providers:
@@ -32,9 +32,9 @@ phraseforge:
     prompt: |
       You write the transcription of the source text in Latin script, the way language handbooks do.
 
-      - Use the standard scholarly transliteration of the source language: DIN 31635 for Arabic and Persian, Pinyin with tone marks for Mandarin, Hepburn for Japanese, SBL for Hebrew, YIVO for Yiddish, and the usual system for any other script.
-      - Transcribe the way the text is spoken, word by word: supply the vowels even when the text is written without them.
-      - Keep every diacritic and special letter of the system (ā ī ū ḥ ṭ ṣ š ǧ ḫ ʿ ʾ, tone marks, macrons); never replace them with plain letters.
+      - Follow the transcription rules below: they name the system for the language of the text.
+      - Transcribe the way the text is spoken, word by word.
+      - Keep every diacritic and special letter the rules require (tone marks, macrons, dots); never replace them with plain letters.
       - Capitalize as in normal text: the first word of each sentence and proper nouns; everything else in lower case.
       - Use only Latin punctuation (, . ! ? : ; ' " ( )), never the punctuation of the source script.
       - Preserve the line breaks and structure. Do not translate, explain or comment.
@@ -44,7 +44,7 @@ phraseforge:
 
       Example 1 (Arabic).
       Input: كتب الطالب الدرس في المدرسة.
-      Output: Kataba ṭ-ṭālib ad-dars fī l-madrasa.
+      Output: Kataba ṭ-ṭālib ad-dars fi-l-madrasa.
 
       Example 2 (Japanese).
       Input: 私は毎日学校に行きます。
@@ -155,14 +155,14 @@ phraseforge:
     maxAttempts: 3
     prompt: |
       You extract vocabulary from the given text for a language learner. Respond ONLY with one item per line, in this exact format:
-      phrase {grammar} [transcription] = translation
+      phrase {grammar} [transcription] | usage
       No preamble, numbering, bullets, comments or code fences, only the item lines.
 
       - phrase: the dictionary form, never the inflected form found in the text. Nouns in the singular, verbs in the infinitive (Arabic: 3rd person masculine singular perfect; Latin: 1st person singular present), adjectives in the masculine singular. Keep the original script and spelling, with the vowel signs and accents a dictionary gives. Prefer single words; add a short fixed phrase only when its meaning needs it. Skip names, numbers and very common words.
       - {grammar}: the part of speech N, V, Adj, Adv, Pron, Prep, Conj, Num, Part or Phrase, then the tags the language uses (for example N m, N f, V sep). Leave it out if unsure.
-      - [transcription]: only for a language written in a script other than Latin, Cyrillic and Greek (for example Arabic, Persian, Hebrew, Yiddish, Mandarin, Japanese): the word in Latin script, in the standard scholarly transliteration, with every diacritic, as it is pronounced. Never leave it out for such a language.
-      - translation after =: into Polish, as a dictionary gives it: lowercase unless a name that is normally capitalized, senses separated with "; " (never "/"), no parentheses, no notes.
-      Each of {grammar}, [transcription] and = translation is left out entirely, without empty brackets, when it does not apply.
+      - [transcription]: only when transcription rules are given below: the word in Latin script, following those rules, as it is pronounced. Never leave it out then.
+      - usage after |: a short phrase copied from the text, in its original language and spelling, that shows the word as it is used there: a noun phrase, a verb with its object, or a subject with an intransitive verb. At most 80 characters, never a whole sentence, never translated, never made up: cut the sentence down around the word instead of rewriting it. Leave it out if the text has no short phrase for the word.
+      Each of {grammar}, [transcription] and | usage is left out entirely, without empty brackets, when it does not apply.
 
       {{grammarPrompt}}
 
@@ -171,19 +171,19 @@ phraseforge:
       Example 1.
       Input: كتب الطالب الدرس في المدرسة.
       Output:
-      كَتَبَ {V} [kataba] = pisać
-      طَالِبٌ {N m sg} [ṭālib] = uczeń; student
-      دَرْسٌ {N m sg} [dars] = lekcja
-      مَدْرَسَةٌ {N f sg} [madrasa] = szkoła
+      كَتَبَ {V} [kataba] | كتب الطالب الدرس
+      طَالِبٌ {N m sg} [ṭālib] | كتب الطالب
+      دَرْسٌ {N m sg} [dars] | الدرس في المدرسة
+      مَدْرَسَةٌ {N f sg} [madrasa] | في المدرسة
 
       Example 2.
       Input: Die Kinder lesen jeden Tag ein neues Buch.
       Output:
-      das Kind {N n} = dziecko
-      lesen {V} = czytać
-      der Tag {N m} = dzień
-      neu {Adj} = nowy
-      das Buch {N n} = książka
+      das Kind {N n} | Die Kinder lesen
+      lesen {V} | lesen jeden Tag ein neues Buch
+      der Tag {N m} | jeden Tag
+      neu {Adj} | ein neues Buch
+      das Buch {N n} | ein neues Buch
   generateModels:
     provider: ollama
     model: gemma4:12b
@@ -198,7 +198,7 @@ phraseforge:
       - Choose 3 to 8 phrases, no more, and only the ones worth learning. Skip simple sentences and single words.
       - Order them from the simplest to the most complicated: each phrase a little longer or more involved than the one before it; where it helps, build a phrase up from the previous one.
       - Use the wording of the text. A part the learner can replace is written as "...".
-      - [transcription]: only for a language written in a script other than Latin, Cyrillic and Greek (for example Arabic, Persian, Hebrew, Yiddish, Mandarin, Japanese): the phrase in Latin script, in the standard scholarly transliteration, with every diacritic, as it is pronounced, capitalized only as a normal sentence is. Never leave it out for such a language.
+      - [transcription]: only when transcription rules are given below: the phrase in Latin script, following those rules, as it is pronounced, capitalized only as a normal sentence is. Never leave it out then.
       - translation after =: into Polish, short and natural, with "; " between alternatives (never "/") and no parentheses.
       Each of [transcription] and = translation is left out entirely, without empty brackets, when it does not apply.
 
@@ -214,9 +214,9 @@ phraseforge:
       Example 2.
       Input: لن تكون هذه النهاية، مهما اشتدت الصعوبات. سأواصل النضال من أجل تحقيق أحلامي.
       Output:
-      لَنْ تَكُونَ هَذِهِ النِّهَايَةَ [lan takūna hāḏihi n-nihāya] = to nie będzie koniec
-      سَأُوَاصِلُ النِّضَالَ [saʾuwāṣilu n-niḍāl] = będę kontynuować walkę
-      سَأُوَاصِلُ النِّضَالَ مِنْ أَجْلِ تَحْقِيقِ أَحْلَامِي [saʾuwāṣilu n-niḍāla min aǧli taḥqīqi aḥlāmī] = będę kontynuować walkę o realizację moich marzeń
+      لَنْ تَكُونَ هَذِهِ النِّهَايَةَ [lan takūna hāḏihi-n-nihāya] = to nie będzie koniec
+      سَأُوَاصِلُ النِّضَالَ [saʾuwāṣilu-n-niḍāl] = będę kontynuować walkę
+      سَأُوَاصِلُ النِّضَالَ مِنْ أَجْلِ تَحْقِيقِ أَحْلَامِي [saʾuwāṣilu-n-niḍāl min aǧl taḥqīq aḥlāmī] = będę kontynuować walkę o realizację moich marzeń
   vocabularyItem:
     provider: ollama
     model: gemma4:12b
@@ -230,22 +230,46 @@ phraseforge:
         "grammar": "grammar tags attached to the original phrase, follow the description below; null if unsure",
         "transcription": "only if a transcription is described below, otherwise null",
         "translation": "the meaning of the phrase in the target language",
-        "notes": null
+        "notes": null,
+        "example": "a short phrase that shows how the word is used, or null",
+        "newSense": null,
+        "rewrite": null
       }
 
       Rules:
-      - translation: as a dictionary of the target language gives it. Lowercase, unless it is a name that is normally capitalized. Several senses are joined with "; " (never with "/" or a comma). No parentheses, no explanation, no full stop.
+      - translation: as a dictionary of the target language gives it. Lowercase, unless it is a name that is normally capitalized. Several senses are joined with "; " (never with "/" or a comma). No parentheses, no explanation, no full stop. When an existing translation is shown below, give it unchanged.
       - notes: null, almost always. Write a note only when the translation could be misunderstood without it (a false friend, an unusual sense). Keep it short and write it in the target language, never in English unless English is the target language.
+      - example: one short phrase in the source language that shows how the word is used (a noun phrase, a verb with its object, or a subject with an intransitive verb): at most 80 characters, never a whole sentence. Take it from the usage below, shortened or corrected if needed. It must never be one of the known examples: if the usage is empty or already among the known examples, use null.
+      - newSense: null when no existing translation is shown below or when it already covers the usage. When it does not cover the meaning the usage shows, give that one extra meaning in the target language here, in the style of the translation, without "; ". The extra meaning goes only in newSense: translation stays exactly the existing translation, and notes stay null.
+      - rewrite: null when the phrase is already a dictionary headword, or when the usage is empty. When it is not (a different case than a dictionary gives, or a joined form, such as a noun or a preposition with a personal suffix attached), give the dictionary form as {"phrase": "...", "grammar": "...", "transcription": "..."}: the grammar tags and the transcription of the new phrase, following the descriptions below (null if none is described). The other fields still describe the original phrase.
 
       {{grammarPrompt}}
 
       {{transcriptionPrompt}}
 
+      Usage in the text this phrase came from (unknown if empty):
+      {{usage}}
+
+      Known examples of this phrase, never repeat one of them (none if empty):
+      {{examples}}
+
+      Existing translation of this phrase in the target language (none if empty):
+      {{translation}}
+
       Example 1. Translate from German to Polish: der Koffer
-      {"phrase": "der Koffer", "grammar": "N m", "transcription": null, "translation": "walizka", "notes": null}
+      {"phrase": "der Koffer", "grammar": "N m", "transcription": null, "translation": "walizka", "notes": null, "example": "einen Koffer packen", "newSense": null, "rewrite": null}
 
       Example 2. Translate from Standard Arabic to English: مُهَنْدِسَةٌ
-      {"phrase": "مُهَنْدِسَةٌ", "grammar": "N f sg", "transcription": "muhandisa", "translation": "engineer", "notes": null}
+      {"phrase": "مُهَنْدِسَةٌ", "grammar": "N f sg", "transcription": "muhandisa", "translation": "engineer", "notes": null, "example": "مُهَنْدِسَةٌ مَاهِرَةٌ", "newSense": null, "rewrite": null}
+
+      Example 3. Translate from German to Polish: Kinder (usage: die Kinder spielen)
+      {"phrase": "Kinder", "grammar": "N pl", "transcription": null, "translation": "dzieci", "notes": null, "example": "die Kinder spielen", "newSense": null, "rewrite": {"phrase": "das Kind", "grammar": "N n", "transcription": null}}
+
+      Example 4. Translate from Standard Arabic to English: كِتَابُهُ (usage: قرأت كتابه)
+      {"phrase": "كِتَابُهُ", "grammar": "N m sg", "transcription": "kitābuhu", "translation": "his book", "notes": null, "example": null, "newSense": null, "rewrite": {"phrase": "كِتَابٌ", "grammar": "N m sg", "transcription": "kitāb"}}
+
+      Example 5. Translate from German to Polish: Hahn (usage: den Hahn aufdrehen; existing translation: kogut)
+      {"phrase": "Hahn", "grammar": "N m", "transcription": null, "translation": "kogut", "notes": null, "example": "den Hahn aufdrehen", "newSense": "kran", "rewrite": null}
 
       Translate from {{sourceLanguage}} to {{targetLanguage}}: {{phrase}}
   modelsItem:
@@ -271,7 +295,7 @@ phraseforge:
       {"phrase": "Viele Menschen sind mit ... unzufrieden.", "transcription": null, "translation": "Wielu ludzi jest niezadowolonych z ..."}
 
       Example 2. Translate from Standard Arabic to English: لَنْ تَكُونَ هَذِهِ النِّهَايَةَ
-      {"phrase": "لَنْ تَكُونَ هَذِهِ النِّهَايَةَ", "transcription": "lan takūna hāḏihi n-nihāya", "translation": "this will not be the end"}
+      {"phrase": "لَنْ تَكُونَ هَذِهِ النِّهَايَةَ", "transcription": "lan takūna hāḏihi-n-nihāya", "translation": "this will not be the end"}
 
       Translate from {{sourceLanguage}} to {{targetLanguage}}: {{phrase}}
 
