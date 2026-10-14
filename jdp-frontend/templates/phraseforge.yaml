@@ -40,7 +40,9 @@ spec:
 
 ---
 # phraseforge reads bindAddr/providers/transcription/translation/title/
-# processText/processDialog/generateVocabulary/generateModels from
+# processText/processDialog/generateVocabulary/generateModels/vocabularyItem/
+# modelsItem/checkVocabulary/reviewVocabulary/reviewModels/reviewTranscription/
+# reviewTranslation from
 # this mounted file, not env vars (see phraseforge's internal/config
 # package) — PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD/SESSION_KEY/
 # OLLAMA_API_KEY all come from the environment instead, so this ConfigMap
@@ -69,12 +71,16 @@ data:
     transcription:
       provider: {{ .Values.phraseforge.transcription.provider | quote }}
       model: {{ .Values.phraseforge.transcription.model | quote }}
+      numCtx: {{ .Values.phraseforge.transcription.numCtx }}
+      think: {{ .Values.phraseforge.transcription.think }}
       timeoutSeconds: {{ .Values.phraseforge.transcription.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.transcription.maxAttempts }}
       prompt: {{ .Values.phraseforge.transcription.prompt | quote }}
     translation:
       provider: {{ .Values.phraseforge.translation.provider | quote }}
       model: {{ .Values.phraseforge.translation.model | quote }}
+      numCtx: {{ .Values.phraseforge.translation.numCtx }}
+      think: {{ .Values.phraseforge.translation.think }}
       timeoutSeconds: {{ .Values.phraseforge.translation.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.translation.maxAttempts }}
       prompt: {{ .Values.phraseforge.translation.prompt | quote }}
@@ -82,6 +88,7 @@ data:
       provider: {{ .Values.phraseforge.title.provider | quote }}
       model: {{ .Values.phraseforge.title.model | quote }}
       numCtx: {{ .Values.phraseforge.title.numCtx }}
+      think: {{ .Values.phraseforge.title.think }}
       timeoutSeconds: {{ .Values.phraseforge.title.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.title.maxAttempts }}
       prompt: {{ .Values.phraseforge.title.prompt | quote }}
@@ -89,6 +96,7 @@ data:
       provider: {{ .Values.phraseforge.processText.provider | quote }}
       model: {{ .Values.phraseforge.processText.model | quote }}
       numCtx: {{ .Values.phraseforge.processText.numCtx }}
+      think: {{ .Values.phraseforge.processText.think }}
       timeoutSeconds: {{ .Values.phraseforge.processText.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.processText.maxAttempts }}
       prompt: {{ .Values.phraseforge.processText.prompt | quote }}
@@ -96,6 +104,7 @@ data:
       provider: {{ .Values.phraseforge.processDialog.provider | quote }}
       model: {{ .Values.phraseforge.processDialog.model | quote }}
       numCtx: {{ .Values.phraseforge.processDialog.numCtx }}
+      think: {{ .Values.phraseforge.processDialog.think }}
       timeoutSeconds: {{ .Values.phraseforge.processDialog.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.processDialog.maxAttempts }}
       prompt: {{ .Values.phraseforge.processDialog.prompt | quote }}
@@ -103,6 +112,7 @@ data:
       provider: {{ .Values.phraseforge.generateVocabulary.provider | quote }}
       model: {{ .Values.phraseforge.generateVocabulary.model | quote }}
       numCtx: {{ .Values.phraseforge.generateVocabulary.numCtx }}
+      think: {{ .Values.phraseforge.generateVocabulary.think }}
       timeoutSeconds: {{ .Values.phraseforge.generateVocabulary.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.generateVocabulary.maxAttempts }}
       prompt: {{ .Values.phraseforge.generateVocabulary.prompt | quote }}
@@ -110,21 +120,66 @@ data:
       provider: {{ .Values.phraseforge.generateModels.provider | quote }}
       model: {{ .Values.phraseforge.generateModels.model | quote }}
       numCtx: {{ .Values.phraseforge.generateModels.numCtx }}
+      think: {{ .Values.phraseforge.generateModels.think }}
       timeoutSeconds: {{ .Values.phraseforge.generateModels.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.generateModels.maxAttempts }}
       prompt: {{ .Values.phraseforge.generateModels.prompt | quote }}
     vocabularyItem:
       provider: {{ .Values.phraseforge.vocabularyItem.provider | quote }}
       model: {{ .Values.phraseforge.vocabularyItem.model | quote }}
+      numCtx: {{ .Values.phraseforge.vocabularyItem.numCtx }}
+      think: {{ .Values.phraseforge.vocabularyItem.think }}
       timeoutSeconds: {{ .Values.phraseforge.vocabularyItem.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.vocabularyItem.maxAttempts }}
       prompt: {{ .Values.phraseforge.vocabularyItem.prompt | quote }}
     modelsItem:
       provider: {{ .Values.phraseforge.modelsItem.provider | quote }}
       model: {{ .Values.phraseforge.modelsItem.model | quote }}
+      numCtx: {{ .Values.phraseforge.modelsItem.numCtx }}
+      think: {{ .Values.phraseforge.modelsItem.think }}
       timeoutSeconds: {{ .Values.phraseforge.modelsItem.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.modelsItem.maxAttempts }}
       prompt: {{ .Values.phraseforge.modelsItem.prompt | quote }}
+    checkVocabulary:
+      provider: {{ .Values.phraseforge.checkVocabulary.provider | quote }}
+      model: {{ .Values.phraseforge.checkVocabulary.model | quote }}
+      numCtx: {{ .Values.phraseforge.checkVocabulary.numCtx }}
+      think: {{ .Values.phraseforge.checkVocabulary.think }}
+      timeoutSeconds: {{ .Values.phraseforge.checkVocabulary.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.checkVocabulary.maxAttempts }}
+      prompt: {{ .Values.phraseforge.checkVocabulary.prompt | quote }}
+    reviewVocabulary:
+      provider: {{ .Values.phraseforge.reviewVocabulary.provider | quote }}
+      model: {{ .Values.phraseforge.reviewVocabulary.model | quote }}
+      numCtx: {{ .Values.phraseforge.reviewVocabulary.numCtx }}
+      think: {{ .Values.phraseforge.reviewVocabulary.think }}
+      timeoutSeconds: {{ .Values.phraseforge.reviewVocabulary.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.reviewVocabulary.maxAttempts }}
+      prompt: {{ .Values.phraseforge.reviewVocabulary.prompt | quote }}
+    reviewModels:
+      provider: {{ .Values.phraseforge.reviewModels.provider | quote }}
+      model: {{ .Values.phraseforge.reviewModels.model | quote }}
+      numCtx: {{ .Values.phraseforge.reviewModels.numCtx }}
+      think: {{ .Values.phraseforge.reviewModels.think }}
+      timeoutSeconds: {{ .Values.phraseforge.reviewModels.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.reviewModels.maxAttempts }}
+      prompt: {{ .Values.phraseforge.reviewModels.prompt | quote }}
+    reviewTranscription:
+      provider: {{ .Values.phraseforge.reviewTranscription.provider | quote }}
+      model: {{ .Values.phraseforge.reviewTranscription.model | quote }}
+      numCtx: {{ .Values.phraseforge.reviewTranscription.numCtx }}
+      think: {{ .Values.phraseforge.reviewTranscription.think }}
+      timeoutSeconds: {{ .Values.phraseforge.reviewTranscription.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.reviewTranscription.maxAttempts }}
+      prompt: {{ .Values.phraseforge.reviewTranscription.prompt | quote }}
+    reviewTranslation:
+      provider: {{ .Values.phraseforge.reviewTranslation.provider | quote }}
+      model: {{ .Values.phraseforge.reviewTranslation.model | quote }}
+      numCtx: {{ .Values.phraseforge.reviewTranslation.numCtx }}
+      think: {{ .Values.phraseforge.reviewTranslation.think }}
+      timeoutSeconds: {{ .Values.phraseforge.reviewTranslation.timeoutSeconds }}
+      maxAttempts: {{ .Values.phraseforge.reviewTranslation.maxAttempts }}
+      prompt: {{ .Values.phraseforge.reviewTranslation.prompt | quote }}
 
 ---
 apiVersion: batch/v1

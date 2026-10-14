@@ -8,6 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- phraseforge: the `generateVocabulary`, `vocabularyItem`, `reviewVocabulary` and `reviewModels` prompts are the current defaults of the phraseforge image again: the vocabulary prompts take the dictionary-form rules from the language's snippet (`{{dictionaryPrompt}}`) instead of spelling them out, the extraction prompt asks for grammar tags only where the language has a grammar snippet, and the two reviews check the translation style their generators enforce. Languages without a dictionary snippet (on production `grc`, `heb`, `fas`, `ell`) get only the one language-independent rule until a snippet is added in Admin > Languages. Needs the image that has the dictionary snippet and the review jobs; the image tag is not changed here.
+- phraseforge: every purpose is configured explicitly now: `provider`, `model`,
+  `numCtx`, `think`, `timeoutSeconds`, `maxAttempts` and `prompt`, in `values.yaml`
+  and the ConfigMap template (14 purposes). `checkVocabulary`, `reviewVocabulary`,
+  `reviewTranscription` and `reviewTranslation` were missing and ran on the image's
+  defaults, the new `reviewModels` is added, `think: false` is stated everywhere, and
+  `numCtx: 4096` is stated for `transcription`, `translation`, `vocabularyItem` and
+  `modelsItem`, which left it unset (4096 is the window Ollama reports on the
+  server). The values are the image's defaults (`ollama`/`gemma4:12b`, `numCtx` 8192
+  or 16384 for the two text reviews, 1800 s, 3 attempts, and the prompts of
+  prompt-eval's `prompt/phraseforge/default`), so behavior does not change, with
+  these consequences: no purpose falls back to another's provider and model any
+  more (change all four review purposes to review with another model), a prompt
+  change in a new image reaches production only when `values.yaml` is changed too,
+  and the vocabulary and models item calls now have the context-overflow check
+  (the 361 recent `vocabulary_item` calls used at most 1646 of the 4096 tokens).
+  Requires the phraseforge image that no longer has the fallbacks and refuses a
+  blank provider or model at startup; an older image ignores `reviewModels`, and
+  works with the other values. The image tag is not changed here.
 - phraseforge: the `transcription`, `generateVocabulary`, `generateModels`,
   `vocabularyItem` and `modelsItem` prompts are the current defaults of the
   phraseforge image again (the five were behind them). The transcription prompt and
