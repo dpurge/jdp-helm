@@ -16,3 +16,7 @@ Fully qualified resource name for each app in this chart, e.g. "jdp-frontend-phr
 {{- define "knowledge.fullname" -}}
 {{ .Chart.Name }}-knowledge
 {{- end -}}
+
+{{- define "assistant.fullname" -}}
+{{ .Chart.Name }}-assistant
+{{- end -}}

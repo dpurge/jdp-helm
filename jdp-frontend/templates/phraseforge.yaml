@@ -75,6 +75,7 @@ data:
       think: {{ .Values.phraseforge.transcription.think }}
       timeoutSeconds: {{ .Values.phraseforge.transcription.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.transcription.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.transcription.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.transcription.prompt | quote }}
     translation:
       provider: {{ .Values.phraseforge.translation.provider | quote }}
@@ -83,6 +84,7 @@ data:
       think: {{ .Values.phraseforge.translation.think }}
       timeoutSeconds: {{ .Values.phraseforge.translation.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.translation.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.translation.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.translation.prompt | quote }}
     title:
       provider: {{ .Values.phraseforge.title.provider | quote }}
@@ -91,6 +93,7 @@ data:
       think: {{ .Values.phraseforge.title.think }}
       timeoutSeconds: {{ .Values.phraseforge.title.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.title.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.title.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.title.prompt | quote }}
     processText:
       provider: {{ .Values.phraseforge.processText.provider | quote }}
@@ -99,6 +102,7 @@ data:
       think: {{ .Values.phraseforge.processText.think }}
       timeoutSeconds: {{ .Values.phraseforge.processText.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.processText.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.processText.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.processText.prompt | quote }}
     processDialog:
       provider: {{ .Values.phraseforge.processDialog.provider | quote }}
@@ -107,6 +111,7 @@ data:
       think: {{ .Values.phraseforge.processDialog.think }}
       timeoutSeconds: {{ .Values.phraseforge.processDialog.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.processDialog.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.processDialog.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.processDialog.prompt | quote }}
     generateVocabulary:
       provider: {{ .Values.phraseforge.generateVocabulary.provider | quote }}
@@ -115,6 +120,7 @@ data:
       think: {{ .Values.phraseforge.generateVocabulary.think }}
       timeoutSeconds: {{ .Values.phraseforge.generateVocabulary.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.generateVocabulary.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.generateVocabulary.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.generateVocabulary.prompt | quote }}
     generateModels:
       provider: {{ .Values.phraseforge.generateModels.provider | quote }}
@@ -123,6 +129,7 @@ data:
       think: {{ .Values.phraseforge.generateModels.think }}
       timeoutSeconds: {{ .Values.phraseforge.generateModels.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.generateModels.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.generateModels.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.generateModels.prompt | quote }}
     vocabularyItem:
       provider: {{ .Values.phraseforge.vocabularyItem.provider | quote }}
@@ -131,6 +138,7 @@ data:
       think: {{ .Values.phraseforge.vocabularyItem.think }}
       timeoutSeconds: {{ .Values.phraseforge.vocabularyItem.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.vocabularyItem.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.vocabularyItem.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.vocabularyItem.prompt | quote }}
     modelsItem:
       provider: {{ .Values.phraseforge.modelsItem.provider | quote }}
@@ -139,6 +147,7 @@ data:
       think: {{ .Values.phraseforge.modelsItem.think }}
       timeoutSeconds: {{ .Values.phraseforge.modelsItem.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.modelsItem.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.modelsItem.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.modelsItem.prompt | quote }}
     checkVocabulary:
       provider: {{ .Values.phraseforge.checkVocabulary.provider | quote }}
@@ -147,6 +156,7 @@ data:
       think: {{ .Values.phraseforge.checkVocabulary.think }}
       timeoutSeconds: {{ .Values.phraseforge.checkVocabulary.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.checkVocabulary.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.checkVocabulary.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.checkVocabulary.prompt | quote }}
     reviewVocabulary:
       provider: {{ .Values.phraseforge.reviewVocabulary.provider | quote }}
@@ -155,6 +165,7 @@ data:
       think: {{ .Values.phraseforge.reviewVocabulary.think }}
       timeoutSeconds: {{ .Values.phraseforge.reviewVocabulary.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.reviewVocabulary.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.reviewVocabulary.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.reviewVocabulary.prompt | quote }}
     reviewModels:
       provider: {{ .Values.phraseforge.reviewModels.provider | quote }}
@@ -163,6 +174,7 @@ data:
       think: {{ .Values.phraseforge.reviewModels.think }}
       timeoutSeconds: {{ .Values.phraseforge.reviewModels.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.reviewModels.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.reviewModels.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.reviewModels.prompt | quote }}
     reviewTranscription:
       provider: {{ .Values.phraseforge.reviewTranscription.provider | quote }}
@@ -171,6 +183,7 @@ data:
       think: {{ .Values.phraseforge.reviewTranscription.think }}
       timeoutSeconds: {{ .Values.phraseforge.reviewTranscription.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.reviewTranscription.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.reviewTranscription.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.reviewTranscription.prompt | quote }}
     reviewTranslation:
       provider: {{ .Values.phraseforge.reviewTranslation.provider | quote }}
@@ -179,6 +192,7 @@ data:
       think: {{ .Values.phraseforge.reviewTranslation.think }}
       timeoutSeconds: {{ .Values.phraseforge.reviewTranslation.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.reviewTranslation.maxAttempts }}
+      maxReplyTokens: {{ .Values.phraseforge.reviewTranslation.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.reviewTranslation.prompt | quote }}
 
 ---
