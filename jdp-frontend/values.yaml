@@ -14,21 +14,140 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.10.7
+  image: ghcr.io/dpurge/phraseforge:2026.10.9
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
-  providers:
-    ollama:
-      baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
-      firstTokenTimeoutSeconds: 300
-      idleTimeoutSeconds: 60
   ingest:
     maxContentBytes: 204800
+  llm_calls:
+    # Days to keep the model-call history (table llm_calls); older rows are purged every 6 hours. 0 keeps it forever.
+    retention_days: 30
+  jobs:
+    # Days to keep finished jobs (table jobs); older rows are purged every 6 hours.
+    # Pending and running jobs are never purged. 0 keeps them forever.
+    # Jobs that finished with status done:
+    retention_days_done: 7
+    # Jobs that finished with status failed or cancelled (kept longer so they can be inspected or retried):
+    retention_days_failed: 30
+  # Which provider API keys the ExternalSecret copies from the secret store (OpenBao
+  # key phraseforge) into the pod environment. An ExternalSecret entry whose remote
+  # property is missing fails the whole sync (the database credentials with it), so
+  # an entry is rendered only when its flag is true: create the property in the
+  # secret store first, then set the flag. The Deployment always reads both
+  # variables as optional, so a pod starts without them (see the comment on
+  # models below for what a missing key means for each provider).
+  # OLLAMA_API_KEY (property llm-api-key) is always copied, as before.
+  secrets:
+    # OPENROUTER_API_KEY from the property openrouter-api-key.
+    openrouter_api_key: true
+    # ANTHROPIC_API_KEY from the property anthropic-api-key.
+    anthropic_api_key: false
+  # Rendered as models.yaml (PHRASEFORGE_MODELS_FILE, default
+  # /etc/phraseforge/models.yaml); read at startup, so restart the pod after a change.
+  # A purpose's model_tags (below) choose the models: a call goes to the available model
+  # that has ALL the tags, highest priority first, and falls back down the list when
+  # it fails or its provider is down. Every ollama model that matches a purpose must
+  # have options.num_ctx >= the purpose's numCtx (the largest is 16384).
+  # Every provider has the compulsory key api_key_from: "" (no credential),
+  # "env:NAME" (the environment variable NAME, read on every call, so a changed
+  # value needs a pod restart to reach the environment) or "file:/absolute/path"
+  # (a file, trimmed, re-read on every call). A key is never written here.
+  # Every provider except demo may also have headers: (header name -> value, with
+  # the same value forms) for extra request headers; Authorization and x-api-key
+  # are refused (use api_key_from). See the commented example under openrouter.
+  # Credentials are optional for every provider: without one, anthropic and vertex
+  # are disabled (their models are skipped, calls fall back, the startup log has
+  # "llm provider unavailable" and Admin > LLM shows missing_credentials), while
+  # ollama and openai send no credential. A purpose whose tags match no model at
+  # all is a startup error.
+  models:
+    providers:
+      - id: ollama-cpu
+        type: ollama
+        base_url: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+        api_key_from: env:OLLAMA_API_KEY
+      - id: ollama-gpu
+        type: ollama
+        base_url: http://192.168.10.58:11434
+        api_key_from: env:OLLAMA_API_KEY
+      - id: openrouter
+        type: openai
+        base_url: https://openrouter.ai/api/v1
+        api_key_from: env:OPENROUTER_API_KEY
+        # Optional extra request headers, for gateways that want them (any provider
+        # type except demo takes them). OpenRouter documents optional attribution
+        # headers named HTTP-Referer and X-Title; check the provider's current
+        # documentation before using them. A value is a literal, "env:NAME" or
+        # "file:/absolute/path" (both read on every call); an unset env/file value
+        # disables the provider like a missing key. A secret header, for example:
+        #   X-Foo: env:SOME_VARIABLE
+        # headers:
+        #   HTTP-Referer: https://example.org/PLACEHOLDER
+        #   X-Title: PLACEHOLDER-app-name
+      # Anthropic would be (needs ANTHROPIC_API_KEY, see secrets.anthropic_api_key):
+      #   - id: anthropic
+      #     type: anthropic
+      #     api_key_from: env:ANTHROPIC_API_KEY
+      # with a model such as
+      #   - id: claude-reference
+      #     provider: anthropic
+      #     model: PLACEHOLDER-claude-model-name
+      #     tags: [anthropic]
+      #     priority: 50
+      #     price: {input_per_mtok: 0, output_per_mtok: 0}
+      # Vertex AI is not wired in this chart. It takes an OAuth access token, not an
+      # API key; without one the provider is disabled. A sample (needs a Secret that
+      # holds a refreshed token, mounted into the Deployment at that path, and a
+      # model on the provider):
+      #   - id: vertex
+      #     type: vertex
+      #     project: my-gcp-project
+      #     location: us-central1
+      #     api_key_from: file:/path/to/mounted/token
+    models:
+      - id: gemma4-12b-cpu
+        provider: ollama-cpu
+        model: gemma4:12b
+        tags: [default]
+        priority: 10
+        options:
+          num_ctx: 16384
+          first_token_timeout_seconds: 300
+          idle_timeout_seconds: 60
+      - id: gemma4-31b-gpu
+        provider: ollama-gpu
+        model: gemma4:31b
+        tags: [default, gpu]
+        priority: 100
+        options:
+          num_ctx: 32768
+          first_token_timeout_seconds: 90
+          idle_timeout_seconds: 60
+      # NOT used by default: it lacks the tag default. To try it on some jobs either
+      # set one purpose's model_tags below to [openrouter] (for example
+      # reviewTranscription), or add an override with the tag openrouter per kind and
+      # languages in Admin > LLM. Selecting it sends the text to a third party.
+      # PLACEHOLDER model; set the price (USD per million tokens) so costs are right.
+      - id: openrouter-reference
+        provider: openrouter
+        model: vendor/model-name
+        tags: [openrouter]
+        priority: 50
+        price:
+          input_per_mtok: 0
+          output_per_mtok: 0
+        options:
+          # first_token_timeout_seconds and idle_timeout_seconds apply to ollama only.
+          overall_timeout_seconds: 300
+          # num_predict: 4096
+    routing:
+      breaker:
+        failures: 3
+        cooldown_seconds: 60
+        rate_limited_cooldown_seconds: 30
   transcription:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 4096
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -53,10 +172,8 @@ phraseforge:
       Input: 私は毎日学校に行きます。
       Output: Watashi wa mainichi gakkō ni ikimasu.
   translation:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 4096
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -65,10 +182,8 @@ phraseforge:
       Return only the translation, preserving line breaks and structure.
       Do not add explanations.
   title:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 8192
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -76,10 +191,8 @@ phraseforge:
       You write a short, specific title for the given text.
       Respond with only the title text on a single line — no quotes, no punctuation at the end, no preamble.
   processText:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 8192
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -127,10 +240,8 @@ phraseforge:
 
       Tiene más de cien mil libros.
   processDialog:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 8192
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -160,10 +271,8 @@ phraseforge:
       B: Gern. Mit Milch?
       A: Ja, bitte.
   generateVocabulary:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 8192
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -201,10 +310,8 @@ phraseforge:
       neu {Adj} | ein neues Buch
       das Buch {N n} | ein neues Buch
   generateModels:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 8192
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -236,10 +343,8 @@ phraseforge:
       سَأُوَاصِلُ النِّضَالَ [saʾuwāṣilu-n-niḍāl] = będę kontynuować walkę
       سَأُوَاصِلُ النِّضَالَ مِنْ أَجْلِ تَحْقِيقِ أَحْلَامِي [saʾuwāṣilu-n-niḍāl min aǧl taḥqīq aḥlāmī] = będę kontynuować walkę o realizację moich marzeń
   vocabularyItem:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 4096
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 512
@@ -296,10 +401,8 @@ phraseforge:
 
       Translate from {{sourceLanguage}} to {{targetLanguage}}: {{phrase}}
   modelsItem:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 4096
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 512
@@ -326,13 +429,11 @@ phraseforge:
       Translate from {{sourceLanguage}} to {{targetLanguage}}: {{phrase}}
 
   # The purposes below were left to the image's defaults; every field is stated here so
-  # the deployment does not depend on them. A review purpose no longer falls back to
-  # reviewVocabulary's provider and model: change them in each of the four.
+  # the deployment does not depend on them. A review purpose does not fall back to
+  # reviewVocabulary's model_tags: set the tags in each of the four.
   checkVocabulary:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 8192
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -367,10 +468,8 @@ phraseforge:
       {{candidates}}
       Answer:
   reviewVocabulary:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 8192
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -425,10 +524,8 @@ phraseforge:
       {{examples}}
       Answer:
   reviewModels:
-    provider: ollama
-    model: gemma4:12b
+    model_tags: [default]
     numCtx: 8192
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -465,10 +562,10 @@ phraseforge:
       {{translations}}
       Answer:
   reviewTranscription:
-    provider: ollama
-    model: gemma4:12b
+    # To compare with the OpenRouter reference model on this purpose only (sends text
+    # to a third party): model_tags: [openrouter]
+    model_tags: [default]
     numCtx: 16384
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -499,10 +596,10 @@ phraseforge:
 
       Answer:
   reviewTranslation:
-    provider: ollama
-    model: gemma4:12b
+    # To compare with the OpenRouter reference model on this purpose only (sends text
+    # to a third party): model_tags: [openrouter]
+    model_tags: [default]
     numCtx: 16384
-    think: false
     timeoutSeconds: 1800
     maxAttempts: 3
     maxReplyTokens: 0
@@ -566,24 +663,79 @@ knowledge:
     timeoutSeconds: 1800
 
 assistant:
-  # The first image the release-assistant workflow publishes in October 2026
-  # (CalVer, micro 0); change it to the tag that run actually produced.
-  image: ghcr.io/dpurge/assistant:2026.10.0
-  # No authentication yet: keep this hostname on the internal network.
+  image: ghcr.io/dpurge/assistant:2026.10.1
   hostname: assistant.home.arpa
-  # Rendered as models.yaml. A call goes to the available model that has every
-  # tag it asks for, highest priority first, and falls back down the list.
+  # Which provider API keys the ExternalSecret copies from the secret store (OpenBao
+  # key assistant) into the pod environment. An ExternalSecret entry cannot be
+  # optional: a missing remote property fails the whole sync (the database
+  # connection with it), so an entry is rendered only when its flag is true: create
+  # the property in the secret store first, then set the flag. The Deployment always
+  # reads both variables as optional, so a pod starts without them: a provider whose
+  # key is empty is skipped with a warning at startup and calls fall back.
+  secrets:
+    # OPENROUTER_API_KEY from the property openrouter-api-key.
+    openrouter_api_key: false
+    # ANTHROPIC_API_KEY from the property anthropic-api-key.
+    anthropic_api_key: false
+  # Rendered as models.yaml (ASSISTANT_MODELS_FILE). The Deployment has a checksum
+  # annotation for it (checksum/models), so a change here restarts the pod.
+  # A call goes to the available model that has every tag it asks for, highest
+  # priority first, and falls back down the list. A workflow state asks for tags
+  # with model_tags (files/assistant-workflows/): every set must match a model.
   # Prices are US dollars per million tokens, 0 for a local model.
+  # Every provider has the compulsory key api_key_from: "" (no credential),
+  # "env:NAME" (the environment variable NAME, read on every call) or
+  # "file:/absolute/path" (a file, trimmed, re-read on every call). A key is never
+  # written here. A provider whose credential is missing is skipped with a warning
+  # and its models are not used; calls fall back to the next model.
   models:
     providers:
-      - id: ollama
+      # 1. Ollama in the cluster (CPU only). The old config sent no key. An Ollama
+      # behind an authenticating proxy would use api_key_from: env:OLLAMA_API_KEY,
+      # and then the Deployment needs that variable.
+      - id: ollama-cpu
         type: ollama
         base_url: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+        api_key_from: ""
+      # 2. Ollama on a machine with a GPU in the local network. PLACEHOLDER: replace
+      # the host with the real one. Usually offline and used when available: the
+      # router skips it while it is down and falls back to the cluster model.
+      - id: ollama-gpu
+        type: ollama
+        base_url: http://gpu-host.lan:11434
+        api_key_from: ""
+      # 3. OpenRouter, for reference. OPENROUTER_API_KEY is passed to the pod only
+      # when secrets.openrouter_api_key is true.
+      - id: openrouter
+        type: openai
+        base_url: https://openrouter.ai/api/v1
+        api_key_from: env:OPENROUTER_API_KEY
+        # Optional extra request headers, for gateways that want them. OpenRouter
+        # documents optional attribution headers named HTTP-Referer and X-Title;
+        # check the provider's current documentation before using them. A value is a
+        # literal, "env:NAME" or "file:/absolute/path". A secret header, for example:
+        #   X-Foo: env:SOME_VARIABLE
+        # headers:
+        #   HTTP-Referer: https://example.org/PLACEHOLDER
+        #   X-Title: PLACEHOLDER-app-name
+      # Anthropic would be (needs ANTHROPIC_API_KEY, see secrets.anthropic_api_key):
+      #   - id: anthropic
+      #     type: anthropic
+      #     api_key_from: env:ANTHROPIC_API_KEY
+      # Vertex AI is not wired in this chart. It takes an OAuth access token, not an
+      # API key. A sample (needs a Secret that holds a refreshed token, mounted into
+      # the Deployment at that path, and a model on the provider):
+      #   - id: vertex
+      #     type: vertex
+      #     project: my-gcp-project
+      #     location: us-central1
+      #     api_key_from: file:/path/to/mounted/token
     models:
-      - id: gemma
-        provider: ollama
+      # Today's behavior: the cluster model serves chat and review.
+      - id: gemma-cpu
+        provider: ollama-cpu
         model: gemma4:12b
-        tags: [chat, review, cheap]
+        tags: [default, chat, review, cheap]
         priority: 10
         options:
           num_ctx: 8192
@@ -592,6 +744,37 @@ assistant:
           first_token_timeout_seconds: 300
           idle_timeout_seconds: 60
           overall_timeout_seconds: 600
+        price:
+          input_per_mtok: 0
+          output_per_mtok: 0
+      # Used whenever the GPU host is up (higher priority). PLACEHOLDER model: use
+      # what the GPU host serves.
+      - id: gemma-gpu
+        provider: ollama-gpu
+        model: gemma4:27b
+        tags: [default, chat, review]
+        priority: 100
+        options:
+          num_ctx: 8192
+          num_predict: 512
+          think: false
+          first_token_timeout_seconds: 90
+          idle_timeout_seconds: 60
+          overall_timeout_seconds: 600
+        price:
+          input_per_mtok: 0
+          output_per_mtok: 0
+      # NOT used by default: it has only the tag openrouter (no chat, review or
+      # cheap), so it runs only where a workflow state asks for model_tags
+      # [openrouter]. That sends the text to a third party. PLACEHOLDER model; set
+      # the price so costs are right.
+      - id: openrouter-reference
+        provider: openrouter
+        model: vendor/model-name
+        tags: [openrouter]
+        priority: 50
+        options:
+          overall_timeout_seconds: 300
         price:
           input_per_mtok: 0
           output_per_mtok: 0

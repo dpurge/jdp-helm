@@ -36,10 +36,22 @@ spec:
   - secretKey: OLLAMA_API_KEY
     remoteRef:
       key: phraseforge
-      property: llm-api-key
+      property: ollama-api-key
+{{- if .Values.phraseforge.secrets.openrouter_api_key }}
+  - secretKey: OPENROUTER_API_KEY
+    remoteRef:
+      key: phraseforge
+      property: openrouter-api-key
+{{- end }}
+{{- if .Values.phraseforge.secrets.anthropic_api_key }}
+  - secretKey: ANTHROPIC_API_KEY
+    remoteRef:
+      key: phraseforge
+      property: anthropic-api-key
+{{- end }}
 
 ---
-# phraseforge reads bindAddr/providers/transcription/translation/title/
+# phraseforge reads bindAddr/ingest/llm_calls/jobs/transcription/translation/title/
 # processText/processDialog/generateVocabulary/generateModels/vocabularyItem/
 # modelsItem/checkVocabulary/reviewVocabulary/reviewModels/reviewTranscription/
 # reviewTranslation from
@@ -47,8 +59,10 @@ spec:
 # package) — PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD/SESSION_KEY/
 # OLLAMA_API_KEY all come from the environment instead, so this ConfigMap
 # is never needed by the migrate Job below and stays a normal, Helm-tracked
-# resource. Every purpose is templated explicitly (see values.yaml's own
-# comment) so an operator edits the deployed prompt/timeout text via
+# resource. models.yaml (providers and models, from values phraseforge.models)
+# sits in the same ConfigMap and is found through PHRASEFORGE_MODELS_FILE's
+# default, /etc/phraseforge/models.yaml. Every purpose is templated
+# explicitly (see values.yaml's own comment) so an operator edits the deployed prompt/timeout text via
 # values.yaml, without a rebuild.
 apiVersion: v1
 kind: ConfigMap
@@ -61,139 +75,113 @@ metadata:
 data:
   config.yaml: |
     bindAddr: {{ .Values.phraseforge.bindAddr | quote }}
-    providers:
-      ollama:
-        baseURL: {{ .Values.phraseforge.providers.ollama.baseUrl | quote }}
-        firstTokenTimeoutSeconds: {{ .Values.phraseforge.providers.ollama.firstTokenTimeoutSeconds }}
-        idleTimeoutSeconds: {{ .Values.phraseforge.providers.ollama.idleTimeoutSeconds }}
     ingest:
       maxContentBytes: {{ .Values.phraseforge.ingest.maxContentBytes }}
+    llm_calls:
+      retention_days: {{ .Values.phraseforge.llm_calls.retention_days }}
+    jobs:
+      retention_days_done: {{ .Values.phraseforge.jobs.retention_days_done }}
+      retention_days_failed: {{ .Values.phraseforge.jobs.retention_days_failed }}
     transcription:
-      provider: {{ .Values.phraseforge.transcription.provider | quote }}
-      model: {{ .Values.phraseforge.transcription.model | quote }}
+      model_tags: {{ .Values.phraseforge.transcription.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.transcription.numCtx }}
-      think: {{ .Values.phraseforge.transcription.think }}
       timeoutSeconds: {{ .Values.phraseforge.transcription.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.transcription.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.transcription.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.transcription.prompt | quote }}
     translation:
-      provider: {{ .Values.phraseforge.translation.provider | quote }}
-      model: {{ .Values.phraseforge.translation.model | quote }}
+      model_tags: {{ .Values.phraseforge.translation.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.translation.numCtx }}
-      think: {{ .Values.phraseforge.translation.think }}
       timeoutSeconds: {{ .Values.phraseforge.translation.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.translation.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.translation.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.translation.prompt | quote }}
     title:
-      provider: {{ .Values.phraseforge.title.provider | quote }}
-      model: {{ .Values.phraseforge.title.model | quote }}
+      model_tags: {{ .Values.phraseforge.title.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.title.numCtx }}
-      think: {{ .Values.phraseforge.title.think }}
       timeoutSeconds: {{ .Values.phraseforge.title.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.title.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.title.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.title.prompt | quote }}
     processText:
-      provider: {{ .Values.phraseforge.processText.provider | quote }}
-      model: {{ .Values.phraseforge.processText.model | quote }}
+      model_tags: {{ .Values.phraseforge.processText.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.processText.numCtx }}
-      think: {{ .Values.phraseforge.processText.think }}
       timeoutSeconds: {{ .Values.phraseforge.processText.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.processText.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.processText.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.processText.prompt | quote }}
     processDialog:
-      provider: {{ .Values.phraseforge.processDialog.provider | quote }}
-      model: {{ .Values.phraseforge.processDialog.model | quote }}
+      model_tags: {{ .Values.phraseforge.processDialog.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.processDialog.numCtx }}
-      think: {{ .Values.phraseforge.processDialog.think }}
       timeoutSeconds: {{ .Values.phraseforge.processDialog.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.processDialog.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.processDialog.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.processDialog.prompt | quote }}
     generateVocabulary:
-      provider: {{ .Values.phraseforge.generateVocabulary.provider | quote }}
-      model: {{ .Values.phraseforge.generateVocabulary.model | quote }}
+      model_tags: {{ .Values.phraseforge.generateVocabulary.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.generateVocabulary.numCtx }}
-      think: {{ .Values.phraseforge.generateVocabulary.think }}
       timeoutSeconds: {{ .Values.phraseforge.generateVocabulary.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.generateVocabulary.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.generateVocabulary.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.generateVocabulary.prompt | quote }}
     generateModels:
-      provider: {{ .Values.phraseforge.generateModels.provider | quote }}
-      model: {{ .Values.phraseforge.generateModels.model | quote }}
+      model_tags: {{ .Values.phraseforge.generateModels.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.generateModels.numCtx }}
-      think: {{ .Values.phraseforge.generateModels.think }}
       timeoutSeconds: {{ .Values.phraseforge.generateModels.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.generateModels.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.generateModels.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.generateModels.prompt | quote }}
     vocabularyItem:
-      provider: {{ .Values.phraseforge.vocabularyItem.provider | quote }}
-      model: {{ .Values.phraseforge.vocabularyItem.model | quote }}
+      model_tags: {{ .Values.phraseforge.vocabularyItem.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.vocabularyItem.numCtx }}
-      think: {{ .Values.phraseforge.vocabularyItem.think }}
       timeoutSeconds: {{ .Values.phraseforge.vocabularyItem.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.vocabularyItem.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.vocabularyItem.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.vocabularyItem.prompt | quote }}
     modelsItem:
-      provider: {{ .Values.phraseforge.modelsItem.provider | quote }}
-      model: {{ .Values.phraseforge.modelsItem.model | quote }}
+      model_tags: {{ .Values.phraseforge.modelsItem.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.modelsItem.numCtx }}
-      think: {{ .Values.phraseforge.modelsItem.think }}
       timeoutSeconds: {{ .Values.phraseforge.modelsItem.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.modelsItem.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.modelsItem.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.modelsItem.prompt | quote }}
     checkVocabulary:
-      provider: {{ .Values.phraseforge.checkVocabulary.provider | quote }}
-      model: {{ .Values.phraseforge.checkVocabulary.model | quote }}
+      model_tags: {{ .Values.phraseforge.checkVocabulary.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.checkVocabulary.numCtx }}
-      think: {{ .Values.phraseforge.checkVocabulary.think }}
       timeoutSeconds: {{ .Values.phraseforge.checkVocabulary.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.checkVocabulary.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.checkVocabulary.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.checkVocabulary.prompt | quote }}
     reviewVocabulary:
-      provider: {{ .Values.phraseforge.reviewVocabulary.provider | quote }}
-      model: {{ .Values.phraseforge.reviewVocabulary.model | quote }}
+      model_tags: {{ .Values.phraseforge.reviewVocabulary.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.reviewVocabulary.numCtx }}
-      think: {{ .Values.phraseforge.reviewVocabulary.think }}
       timeoutSeconds: {{ .Values.phraseforge.reviewVocabulary.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.reviewVocabulary.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.reviewVocabulary.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.reviewVocabulary.prompt | quote }}
     reviewModels:
-      provider: {{ .Values.phraseforge.reviewModels.provider | quote }}
-      model: {{ .Values.phraseforge.reviewModels.model | quote }}
+      model_tags: {{ .Values.phraseforge.reviewModels.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.reviewModels.numCtx }}
-      think: {{ .Values.phraseforge.reviewModels.think }}
       timeoutSeconds: {{ .Values.phraseforge.reviewModels.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.reviewModels.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.reviewModels.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.reviewModels.prompt | quote }}
     reviewTranscription:
-      provider: {{ .Values.phraseforge.reviewTranscription.provider | quote }}
-      model: {{ .Values.phraseforge.reviewTranscription.model | quote }}
+      model_tags: {{ .Values.phraseforge.reviewTranscription.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.reviewTranscription.numCtx }}
-      think: {{ .Values.phraseforge.reviewTranscription.think }}
       timeoutSeconds: {{ .Values.phraseforge.reviewTranscription.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.reviewTranscription.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.reviewTranscription.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.reviewTranscription.prompt | quote }}
     reviewTranslation:
-      provider: {{ .Values.phraseforge.reviewTranslation.provider | quote }}
-      model: {{ .Values.phraseforge.reviewTranslation.model | quote }}
+      model_tags: {{ .Values.phraseforge.reviewTranslation.model_tags | toJson }}
       numCtx: {{ .Values.phraseforge.reviewTranslation.numCtx }}
-      think: {{ .Values.phraseforge.reviewTranslation.think }}
       timeoutSeconds: {{ .Values.phraseforge.reviewTranslation.timeoutSeconds }}
       maxAttempts: {{ .Values.phraseforge.reviewTranslation.maxAttempts }}
       maxReplyTokens: {{ .Values.phraseforge.reviewTranslation.maxReplyTokens }}
       prompt: {{ .Values.phraseforge.reviewTranslation.prompt | quote }}
+  models.yaml: |
+{{ toYaml .Values.phraseforge.models | indent 4 }}
 
 ---
 apiVersion: batch/v1
@@ -326,6 +314,20 @@ spec:
             secretKeyRef:
               name: "{{ include "phraseforge.fullname" . }}"
               key: OLLAMA_API_KEY
+        # Optional keys: a pod starts without them, and a provider whose key is
+        # empty is disabled (see values.yaml, phraseforge.secrets).
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "phraseforge.fullname" . }}"
+              key: OPENROUTER_API_KEY
+              optional: true
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "phraseforge.fullname" . }}"
+              key: ANTHROPIC_API_KEY
+              optional: true
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false

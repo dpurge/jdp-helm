@@ -42,6 +42,18 @@ spec:
     remoteRef:
       key: assistant
       property: postgres-password
+{{- if .Values.assistant.secrets.openrouter_api_key }}
+  - secretKey: OPENROUTER_API_KEY
+    remoteRef:
+      key: assistant
+      property: openrouter-api-key
+{{- end }}
+{{- if .Values.assistant.secrets.anthropic_api_key }}
+  - secretKey: ANTHROPIC_API_KEY
+    remoteRef:
+      key: assistant
+      property: anthropic-api-key
+{{- end }}
 
 ---
 # The models file: which providers and models the router may use, with tags,
@@ -166,6 +178,20 @@ spec:
           value: /etc/assistant/models.yaml
         - name: ASSISTANT_WORKFLOWS_DIR
           value: /etc/assistant-workflows
+        # Optional keys: a pod starts without them, and a provider whose key is
+        # empty is skipped (see values.yaml, assistant.secrets).
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "assistant.fullname" . }}"
+              key: OPENROUTER_API_KEY
+              optional: true
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "assistant.fullname" . }}"
+              key: ANTHROPIC_API_KEY
+              optional: true
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
