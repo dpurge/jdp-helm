@@ -14,7 +14,7 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.10.10
+  image: ghcr.io/dpurge/phraseforge:2026.10.11
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
   ingest:
@@ -630,7 +630,7 @@ phraseforge:
       Answer:
 
 knowledge:
-  image: ghcr.io/dpurge/knowledge:2026.9.9
+  image: ghcr.io/dpurge/knowledge:2026.10.1
   hostname: knowledge.home.arpa
   providers:
     ollama:
