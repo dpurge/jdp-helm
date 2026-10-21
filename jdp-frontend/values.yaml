@@ -14,7 +14,7 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.10.9
+  image: ghcr.io/dpurge/phraseforge:2026.10.10
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
   ingest:
@@ -630,7 +630,7 @@ phraseforge:
       Answer:
 
 knowledge:
-  image: ghcr.io/dpurge/knowledge:2026.9.8
+  image: ghcr.io/dpurge/knowledge:2026.9.9
   hostname: knowledge.home.arpa
   providers:
     ollama:
@@ -663,7 +663,7 @@ knowledge:
     timeoutSeconds: 1800
 
 assistant:
-  image: ghcr.io/dpurge/assistant:2026.10.1
+  image: ghcr.io/dpurge/assistant:2026.10.2
   hostname: assistant.home.arpa
   # Which provider API keys the ExternalSecret copies from the secret store (OpenBao
   # key assistant) into the pod environment. An ExternalSecret entry cannot be
