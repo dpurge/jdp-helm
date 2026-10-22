@@ -772,7 +772,7 @@ assistant:
       # router skips it while it is down and falls back to the cluster model.
       - id: ollama-gpu
         type: ollama
-        base_url: http://gpu-host.lan:11434
+        base_url: http://192.168.10.58:11434
         api_key_from: ""
       # 3. OpenRouter, for reference. OPENROUTER_API_KEY is passed to the pod only
       # when secrets.openrouter_api_key is true.
@@ -802,29 +802,29 @@ assistant:
       #     api_key_from: file:/path/to/mounted/token
     models:
       # Today's behavior: the cluster model serves chat and review.
-      - id: gemma-cpu
-        provider: ollama-cpu
-        model: gemma4:12b
-        tags: [default, chat, review, cheap, orchestrator]
-        priority: 10
-        options:
-          num_ctx: 8192
-          num_predict: 512
-          think: false
-          first_token_timeout_seconds: 300
-          idle_timeout_seconds: 60
-          overall_timeout_seconds: 600
-        price:
-          input_per_mtok: 0
-          output_per_mtok: 0
+      # - id: gemma4-12b-cpu
+      #   provider: ollama-cpu
+      #   model: gemma4:12b
+      #   tags: [default, chat, review, cheap, orchestrator]
+      #   priority: 10
+      #   options:
+      #     num_ctx: 8192
+      #     num_predict: 512
+      #     think: false
+      #     first_token_timeout_seconds: 300
+      #     idle_timeout_seconds: 60
+      #     overall_timeout_seconds: 600
+      #   price:
+      #     input_per_mtok: 0
+      #     output_per_mtok: 0
       # The same cluster model with room for an interface: a form in A2UI is several
       # times longer than a chat reply, so the output is not cut at 512 tokens. Only
       # workflows that ask for the tag ui (ui-compose) use it. Prefer a GPU model
       # here too when one is available: add it with the tag ui and num_predict 2048.
-      - id: gemma4-12b
+      - id: gemma4-12b-cpu
         provider: ollama-cpu
         model: gemma4:12b
-        tags: [ui]
+        tags: [default, chat, review, cheap, orchestrator, ui]
         priority: 10
         options:
           num_ctx: 8192
@@ -838,9 +838,9 @@ assistant:
           output_per_mtok: 0
       # Used whenever the GPU host is up (higher priority). PLACEHOLDER model: use
       # what the GPU host serves.
-      - id: gemma4-27b
+      - id: gemma4-31b-gpu
         provider: ollama-gpu
-        model: gemma4:27b
+        model: gemma4:31b
         tags: [default, chat, review, orchestrator, ui]
         priority: 100
         options:
