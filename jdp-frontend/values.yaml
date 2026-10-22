@@ -14,7 +14,7 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.10.11
+  image: ghcr.io/dpurge/phraseforge:2026.10.12
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
   ingest:
@@ -36,7 +36,7 @@ phraseforge:
   # secret store first, then set the flag. The Deployment always reads both
   # variables as optional, so a pod starts without them (see the comment on
   # models below for what a missing key means for each provider).
-  # OLLAMA_API_KEY (property llm-api-key) is always copied, as before.
+  # OLLAMA_API_KEY (property ollama-api-key) is always copied, as before.
   secrets:
     # OPENROUTER_API_KEY from the property openrouter-api-key.
     openrouter_api_key: true
@@ -630,40 +630,110 @@ phraseforge:
       Answer:
 
 knowledge:
-  image: ghcr.io/dpurge/knowledge:2026.10.1
+  image: ghcr.io/dpurge/knowledge:2026.10.2
   hostname: knowledge.home.arpa
-  providers:
-    ollama:
-      baseUrl: http://jdp-backend-ollama.backend.svc.cluster.local:11434
-      firstTokenTimeoutSeconds: 300
-      idleTimeoutSeconds: 60
+  # Which provider API keys the ExternalSecret copies from the secret store (OpenBao
+  # key knowledge) into the pod environment. An ExternalSecret entry cannot be
+  # optional: a missing remote property fails the whole sync (the database
+  # connection with it), so an entry is rendered only when its flag is true: create
+  # the property in the secret store first, then set the flag. The Deployment always
+  # reads both variables as optional, so a pod starts without them: a provider whose
+  # key is empty is skipped with a warning at startup and calls fall back.
+  secrets:
+    # OPENROUTER_API_KEY from the property openrouter-api-key.
+    openrouter_api_key: false
+    # ANTHROPIC_API_KEY from the property anthropic-api-key.
+    anthropic_api_key: false
+  # The rest is rendered as config.yaml (all keys snake_case; an old camelCase key
+  # stops the app at startup). What each purpose runs on is not named here: a
+  # purpose lists model_tags, and the router picks the highest-priority available
+  # model in `models` below that has all of them, falling back down the list.
+  qdrant:
+    collection: knowledge
+    search_min_score: 0.4
+  # The vector space of the index and how long its vectors are. The embedding models
+  # of this space are in `models`; the router falls back only between models of the
+  # same space (for example the same model on two machines). The space name is
+  # stored on every item in Qdrant: keep it as it is while the index holds items made
+  # with it, and a different space or dimension needs a new collection. bge-m3
+  # produces 1024-dim dense embeddings.
   embeddings:
-    provider: ollama
-    model: bge-m3
-    # bge-m3 produces 1024-dim dense embeddings
+    embedding_space: bge-m3
     dimension: 1024
   chat:
-    provider: ollama
-    model: gemma4:12b
-    # gemma4:12b's Ollama runtime default context is 4096 tokens, far below
-    # its trained max.
-    numCtx: 8192
-    timeoutSeconds: 1800
-  generateTitle:
-    provider: ollama
-    model: gemma4:12b
-    timeoutSeconds: 1800
-  generateSummary:
-    provider: ollama
-    model: gemma4:12b
-    timeoutSeconds: 1800
+    model_tags: [chat]
+    # gemma4:12b's Ollama runtime default context is 4096 tokens, far below its
+    # trained max. A model with the chat tag must have options.num_ctx of at least
+    # this, or the app refuses to start.
+    num_ctx: 8192
+    timeout_seconds: 1800
+  generate_title:
+    model_tags: [default]
+    timeout_seconds: 1800
+  generate_summary:
+    model_tags: [default]
+    timeout_seconds: 1800
   translate:
-    provider: ollama
-    model: gemma4:12b
-    timeoutSeconds: 1800
+    model_tags: [default]
+    timeout_seconds: 1800
+  knowledge_language: English
+  # Model call records (the llm_calls table) older than this are purged; 0 keeps
+  # them forever.
+  llm_calls:
+    retention_days: 30
+  # Rendered as models.yaml (KNOWLEDGE_MODELS_FILE, default
+  # /etc/knowledge/models.yaml, in the same ConfigMap as config.yaml). The Deployment
+  # has a checksum annotation, so a change here or above restarts the pod.
+  # Every provider has the compulsory key api_key_from: "" (no credential),
+  # "env:NAME" (the environment variable NAME, read on every call) or
+  # "file:/absolute/path" (a file, trimmed, re-read on every call). A key is never
+  # written here. A provider whose credential is missing is skipped with a warning
+  # and its models are not used; calls fall back to the next model.
+  models:
+    providers:
+      # Ollama in the cluster. The old config sent no key; an Ollama behind an
+      # authenticating proxy would use api_key_from: env:NAME and the Deployment
+      # would need that variable.
+      - id: ollama
+        type: ollama
+        base_url: http://jdp-backend-ollama.backend.svc.cluster.local:11434
+        api_key_from: ""
+      # OpenRouter, for reference (chat models only: only Ollama and OpenAI-compatible
+      # providers have an embeddings endpoint, and an embedding model of another
+      # space would never stand in for bge-m3). Needs secrets.openrouter_api_key.
+      # To use it add a model on it with the tags default and chat:
+      #   - id: openrouter
+      #     type: openai
+      #     base_url: https://openrouter.ai/api/v1
+      #     api_key_from: env:OPENROUTER_API_KEY
+    models:
+      # Today's behavior: the cluster model serves chat, title, summary and translate.
+      - id: gemma4-12b
+        provider: ollama
+        model: gemma4:12b
+        tags: [default, chat]
+        priority: 10
+        options:
+          num_ctx: 8192
+          think: false
+          first_token_timeout_seconds: 300
+          idle_timeout_seconds: 60
+      # The embedding model. embedding_space and dimension must be the ones above.
+      - id: bge-m3
+        provider: ollama
+        model: bge-m3
+        tags: [embed]
+        priority: 10
+        embedding_space: bge-m3
+        dimension: 1024
+    routing:
+      breaker:
+        failures: 3
+        cooldown_seconds: 60
+        rate_limited_cooldown_seconds: 30
 
 assistant:
-  image: ghcr.io/dpurge/assistant:2026.10.2
+  image: ghcr.io/dpurge/assistant:2026.10.3
   hostname: assistant.home.arpa
   # Which provider API keys the ExternalSecret copies from the secret store (OpenBao
   # key assistant) into the pod environment. An ExternalSecret entry cannot be
@@ -735,7 +805,7 @@ assistant:
       - id: gemma-cpu
         provider: ollama-cpu
         model: gemma4:12b
-        tags: [default, chat, review, cheap]
+        tags: [default, chat, review, cheap, orchestrator]
         priority: 10
         options:
           num_ctx: 8192
@@ -747,12 +817,31 @@ assistant:
         price:
           input_per_mtok: 0
           output_per_mtok: 0
+      # The same cluster model with room for an interface: a form in A2UI is several
+      # times longer than a chat reply, so the output is not cut at 512 tokens. Only
+      # workflows that ask for the tag ui (ui-compose) use it. Prefer a GPU model
+      # here too when one is available: add it with the tag ui and num_predict 2048.
+      - id: gemma-cpu-ui
+        provider: ollama-cpu
+        model: gemma4:12b
+        tags: [ui]
+        priority: 10
+        options:
+          num_ctx: 8192
+          num_predict: 2048
+          think: false
+          first_token_timeout_seconds: 300
+          idle_timeout_seconds: 90
+          overall_timeout_seconds: 900
+        price:
+          input_per_mtok: 0
+          output_per_mtok: 0
       # Used whenever the GPU host is up (higher priority). PLACEHOLDER model: use
       # what the GPU host serves.
       - id: gemma-gpu
         provider: ollama-gpu
         model: gemma4:27b
-        tags: [default, chat, review]
+        tags: [default, chat, review, orchestrator]
         priority: 100
         options:
           num_ctx: 8192

@@ -37,14 +37,29 @@ spec:
     remoteRef:
       key: knowledge
       property: qdrant-url
+{{- if .Values.knowledge.secrets.openrouter_api_key }}
+  - secretKey: OPENROUTER_API_KEY
+    remoteRef:
+      key: knowledge
+      property: openrouter-api-key
+{{- end }}
+{{- if .Values.knowledge.secrets.anthropic_api_key }}
+  - secretKey: ANTHROPIC_API_KEY
+    remoteRef:
+      key: knowledge
+      property: anthropic-api-key
+{{- end }}
 
 ---
-# knowledge reads qdrant.collection/searchMinScore and
-# embeddings/chat/generate/translate from this mounted file, not env vars
-# (see knowledge's internal/config package) — Postgres connection details
-# and QDRANT_URL come from the environment instead (see the Secret above),
-# so this ConfigMap is never needed by the migrate Job below and stays a
-# normal, Helm-tracked resource.
+# knowledge reads qdrant/embeddings/chat/generate_title/generate_summary/
+# translate/knowledge_language/llm_calls from the mounted config.yaml and the
+# providers and models from the mounted models.yaml (KNOWLEDGE_MODELS_FILE,
+# default /etc/knowledge/models.yaml), not env vars (see knowledge's
+# internal/config package; every key is snake_case and an old camelCase key stops
+# the app at startup). Postgres connection details, QDRANT_URL and the provider
+# API keys come from the environment instead (see the Secret above), so this
+# ConfigMap is never needed by the migrate Job below and stays a normal,
+# Helm-tracked resource. Prompts are the image's defaults.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -56,35 +71,29 @@ metadata:
 data:
   config.yaml: |
     qdrant:
-      collection: knowledge
-      searchMinScore: 0.4
-    providers:
-      ollama:
-        baseURL: {{ .Values.knowledge.providers.ollama.baseUrl | quote }}
-        firstTokenTimeoutSeconds: {{ .Values.knowledge.providers.ollama.firstTokenTimeoutSeconds }}
-        idleTimeoutSeconds: {{ .Values.knowledge.providers.ollama.idleTimeoutSeconds }}
+      collection: {{ .Values.knowledge.qdrant.collection | quote }}
+      search_min_score: {{ .Values.knowledge.qdrant.search_min_score }}
     embeddings:
-      provider: {{ .Values.knowledge.embeddings.provider | quote }}
-      model: {{ .Values.knowledge.embeddings.model | quote }}
+      embedding_space: {{ .Values.knowledge.embeddings.embedding_space | quote }}
       dimension: {{ .Values.knowledge.embeddings.dimension }}
     chat:
-      provider: {{ .Values.knowledge.chat.provider | quote }}
-      model: {{ .Values.knowledge.chat.model | quote }}
-      numCtx: {{ .Values.knowledge.chat.numCtx }}
-      timeoutSeconds: {{ .Values.knowledge.chat.timeoutSeconds }}
-    generateTitle:
-      provider: {{ .Values.knowledge.generateTitle.provider | quote }}
-      model: {{ .Values.knowledge.generateTitle.model | quote }}
-      timeoutSeconds: {{ .Values.knowledge.generateTitle.timeoutSeconds }}
-    generateSummary:
-      provider: {{ .Values.knowledge.generateSummary.provider | quote }}
-      model: {{ .Values.knowledge.generateSummary.model | quote }}
-      timeoutSeconds: {{ .Values.knowledge.generateSummary.timeoutSeconds }}
-    knowledgeLanguage: English
+      model_tags: {{ .Values.knowledge.chat.model_tags | toJson }}
+      num_ctx: {{ .Values.knowledge.chat.num_ctx }}
+      timeout_seconds: {{ .Values.knowledge.chat.timeout_seconds }}
+    generate_title:
+      model_tags: {{ .Values.knowledge.generate_title.model_tags | toJson }}
+      timeout_seconds: {{ .Values.knowledge.generate_title.timeout_seconds }}
+    generate_summary:
+      model_tags: {{ .Values.knowledge.generate_summary.model_tags | toJson }}
+      timeout_seconds: {{ .Values.knowledge.generate_summary.timeout_seconds }}
+    knowledge_language: {{ .Values.knowledge.knowledge_language | quote }}
     translate:
-      provider: {{ .Values.knowledge.translate.provider | quote }}
-      model: {{ .Values.knowledge.translate.model | quote }}
-      timeoutSeconds: {{ .Values.knowledge.translate.timeoutSeconds }}
+      model_tags: {{ .Values.knowledge.translate.model_tags | toJson }}
+      timeout_seconds: {{ .Values.knowledge.translate.timeout_seconds }}
+    llm_calls:
+      retention_days: {{ .Values.knowledge.llm_calls.retention_days }}
+  models.yaml: |
+{{ toYaml .Values.knowledge.models | indent 4 }}
 
 ---
 apiVersion: batch/v1
@@ -122,7 +131,11 @@ spec:
         # No ConfigMap mount: migrate only needs Postgres + Qdrant URL,
         # sourced entirely from this Secret — the same mechanism already
         # used successfully for PGUSER/PGPASSWORD, so this hook never
-        # depends on any non-hook resource existing first.
+        # depends on any non-hook resource existing first. It does not read
+        # models.yaml (it embeds nothing). Without config.yaml it builds the
+        # collection for the image's default embedding space and dimension
+        # (bge-m3, 1024), which are the values in values.yaml: if you change
+        # knowledge.embeddings, create the collection yourself first.
         env:
         - name: PGHOST
           valueFrom:
@@ -173,6 +186,10 @@ spec:
   template:
     metadata:
       labels: *labels
+      annotations:
+        # The app reads config.yaml and models.yaml at startup: a change to any
+        # knowledge value restarts the pod.
+        checksum/config: {{ toYaml .Values.knowledge | sha256sum }}
     spec:
       securityContext:
         runAsNonRoot: true
@@ -215,6 +232,20 @@ spec:
             secretKeyRef:
               name: "{{ include "knowledge.fullname" . }}"
               key: QDRANT_URL
+        # Optional keys: a pod starts without them, and a provider whose key is
+        # empty is skipped (see values.yaml, knowledge.secrets).
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: OPENROUTER_API_KEY
+              optional: true
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "knowledge.fullname" . }}"
+              key: ANTHROPIC_API_KEY
+              optional: true
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
