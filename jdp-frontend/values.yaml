@@ -128,14 +128,14 @@ phraseforge:
       # reviewTranscription), or add an override with the tag openrouter per kind and
       # languages in Admin > LLM. Selecting it sends the text to a third party.
       # PLACEHOLDER model; set the price (USD per million tokens) so costs are right.
-      - id: openrouter-reference
+      - id: glm-flash-latest
         provider: openrouter
-        model: vendor/model-name
+        model: z-ai/glm-flash-latest
         tags: [openrouter]
         priority: 50
         price:
-          input_per_mtok: 0
-          output_per_mtok: 0
+          input_per_mtok: 0.0052
+          output_per_mtok: 0.1985
         options:
           # first_token_timeout_seconds and idle_timeout_seconds apply to ollama only.
           overall_timeout_seconds: 300
@@ -821,7 +821,7 @@ assistant:
       # times longer than a chat reply, so the output is not cut at 512 tokens. Only
       # workflows that ask for the tag ui (ui-compose) use it. Prefer a GPU model
       # here too when one is available: add it with the tag ui and num_predict 2048.
-      - id: gemma-cpu-ui
+      - id: gemma4-12b
         provider: ollama-cpu
         model: gemma4:12b
         tags: [ui]
@@ -838,10 +838,10 @@ assistant:
           output_per_mtok: 0
       # Used whenever the GPU host is up (higher priority). PLACEHOLDER model: use
       # what the GPU host serves.
-      - id: gemma-gpu
+      - id: gemma4-27b
         provider: ollama-gpu
         model: gemma4:27b
-        tags: [default, chat, review, orchestrator]
+        tags: [default, chat, review, orchestrator, ui]
         priority: 100
         options:
           num_ctx: 8192
@@ -857,16 +857,18 @@ assistant:
       # cheap), so it runs only where a workflow state asks for model_tags
       # [openrouter]. That sends the text to a third party. PLACEHOLDER model; set
       # the price so costs are right.
-      - id: openrouter-reference
+      - id: glm-flash-latest
         provider: openrouter
-        model: vendor/model-name
+        model: z-ai/glm-flash-latest
         tags: [openrouter]
         priority: 50
-        options:
-          overall_timeout_seconds: 300
         price:
-          input_per_mtok: 0
-          output_per_mtok: 0
+          input_per_mtok: 0.0052
+          output_per_mtok: 0.1985
+        options:
+          # first_token_timeout_seconds and idle_timeout_seconds apply to ollama only.
+          overall_timeout_seconds: 300
+          # num_predict: 4096
     routing:
       breaker:
         failures: 3
