@@ -92,6 +92,12 @@ data:
       timeout_seconds: {{ .Values.knowledge.translate.timeout_seconds }}
     llm_calls:
       retention_days: {{ .Values.knowledge.llm_calls.retention_days }}
+{{- /* Images before 2026.10.3 decode config.yaml strictly and refuse a nats key: render it only for a CalVer tag from 2026.10.3 on (or a tag that is not CalVer). */}}
+{{- $knowledgeTag := splitList ":" .Values.knowledge.image | last }}
+{{- if and .Values.knowledge.nats.url (or (not (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+$" $knowledgeTag)) (semverCompare ">=2026.10.3" $knowledgeTag)) }}
+    nats:
+      url: {{ .Values.knowledge.nats.url | quote }}
+{{- end }}
   models.yaml: |
 {{ toYaml .Values.knowledge.models | indent 4 }}
 

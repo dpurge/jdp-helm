@@ -178,6 +178,11 @@ spec:
           value: /etc/assistant/models.yaml
         - name: ASSISTANT_WORKFLOWS_DIR
           value: /etc/assistant-workflows
+{{- if .Values.assistant.nats.url }}
+        # Empty (assistant.nats.url) leaves the variable unset: the app never connects to NATS.
+        - name: ASSISTANT_NATS_URL
+          value: {{ .Values.assistant.nats.url | quote }}
+{{- end }}
         # Optional keys: a pod starts without them, and a provider whose key is
         # empty is skipped (see values.yaml, assistant.secrets).
         - name: OPENROUTER_API_KEY

@@ -14,7 +14,7 @@ planka:
     port: 5432
 
 phraseforge:
-  image: ghcr.io/dpurge/phraseforge:2026.10.12
+  image: ghcr.io/dpurge/phraseforge:2026.10.13
   hostname: phraseforge.home.arpa
   bindAddr: "0.0.0.0:8090"
   ingest:
@@ -29,6 +29,14 @@ phraseforge:
     retention_days_done: 7
     # Jobs that finished with status failed or cancelled (kept longer so they can be inspected or retried):
     retention_days_failed: 30
+  # NATS: the app can call and answer other apps over NATS when a URL is set. Empty
+  # disables it: the app never connects. The default is the production NATS, the headless
+  # Service jdp-data-nats in the data namespace. Rendered as nats.url in config.yaml (env override PHRASEFORGE_NATS_URL).
+  # Nothing authenticates a sender: any pod that can reach NATS can send a message to the app.
+  # Phraseforge renders this key only for an image tag from 2026.10.13 on: older phraseforge images
+  # reject an unknown nats key in config.yaml and would not start.
+  nats:
+    url: nats://jdp-data-nats.data.svc.cluster.local:4222
   # Which provider API keys the ExternalSecret copies from the secret store (OpenBao
   # key phraseforge) into the pod environment. An ExternalSecret entry whose remote
   # property is missing fails the whole sync (the database credentials with it), so
@@ -630,7 +638,7 @@ phraseforge:
       Answer:
 
 knowledge:
-  image: ghcr.io/dpurge/knowledge:2026.10.2
+  image: ghcr.io/dpurge/knowledge:2026.10.3
   hostname: knowledge.home.arpa
   # Which provider API keys the ExternalSecret copies from the secret store (OpenBao
   # key knowledge) into the pod environment. An ExternalSecret entry cannot be
@@ -681,6 +689,14 @@ knowledge:
   # them forever.
   llm_calls:
     retention_days: 30
+  # NATS: the app can call and answer other apps over NATS when a URL is set. Empty
+  # disables it: the app never connects. The default is the production NATS, the headless
+  # Service jdp-data-nats in the data namespace. Rendered as nats.url in config.yaml (env override KNOWLEDGE_NATS_URL).
+  # Nothing authenticates a sender: any pod that can reach NATS can send a message to the app.
+  # Knowledge renders this key only for an image tag from 2026.10.3 on: older knowledge images
+  # decode config.yaml strictly and would not start with an unknown nats key.
+  nats:
+    url: nats://jdp-data-nats.data.svc.cluster.local:4222
   # Rendered as models.yaml (KNOWLEDGE_MODELS_FILE, default
   # /etc/knowledge/models.yaml, in the same ConfigMap as config.yaml). The Deployment
   # has a checksum annotation, so a change here or above restarts the pod.
@@ -733,7 +749,7 @@ knowledge:
         rate_limited_cooldown_seconds: 30
 
 assistant:
-  image: ghcr.io/dpurge/assistant:2026.10.3
+  image: ghcr.io/dpurge/assistant:2026.10.4
   hostname: assistant.home.arpa
   # Which provider API keys the ExternalSecret copies from the secret store (OpenBao
   # key assistant) into the pod environment. An ExternalSecret entry cannot be
@@ -747,6 +763,12 @@ assistant:
     openrouter_api_key: false
     # ANTHROPIC_API_KEY from the property anthropic-api-key.
     anthropic_api_key: false
+  # NATS: the app can call and answer other apps over NATS when a URL is set. Empty
+  # disables it: the app never connects. The default is the production NATS, the headless
+  # Service jdp-data-nats in the data namespace. Set as the environment variable ASSISTANT_NATS_URL (the assistant has no config file).
+  # Nothing authenticates a sender: any pod that can reach NATS can send a message to the app.
+  nats:
+    url: nats://jdp-data-nats.data.svc.cluster.local:4222
   # Rendered as models.yaml (ASSISTANT_MODELS_FILE). The Deployment has a checksum
   # annotation for it (checksum/models), so a change here restarts the pod.
   # A call goes to the available model that has every tag it asks for, highest

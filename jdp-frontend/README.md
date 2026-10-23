@@ -62,6 +62,7 @@ compulsory key `api_key_from`: `""` (no credential), `env:NAME` (an environment 
 | `chat`, `generate_title`, `generate_summary`, `translate` | each has `model_tags` and `timeout_seconds`; `chat` also `num_ctx` |
 | `knowledge_language` | the language the knowledge base is kept in |
 | `llm_calls.retention_days` | days to keep the model-call records; 0 keeps them forever |
+| `nats.url` | NATS URL, rendered as `nats.url` in `config.yaml` (see "NATS" below); empty disables it |
 | `models` | providers, models and the circuit breaker, rendered as `models.yaml` |
 
 - Every key is `snake_case`; the pod restarts by itself when any value changes.
@@ -90,8 +91,9 @@ stay valid because `embedding_space` equals the model name stored on them (`bge-
 
 ### assistant
 
-Block `assistant`: `image`, `hostname`, `secrets` (as above) and `models` (providers, models,
-routing). The pod restarts when `models` or a workflow file changes.
+Block `assistant`: `image`, `hostname`, `secrets` (as above), `nats.url` (see "NATS" below) and
+`models` (providers, models, routing). The pod restarts when `models` or a workflow file
+changes.
 
 - **Workflows** are the files in `files/assistant-workflows/`, copies of
   `k8s-lab/assistant/workflows` that must be kept equal by hand: `learn-topic`, `hello-live`,
@@ -116,7 +118,8 @@ routing). The pod restarts when `models` or a workflow file changes.
 ### phraseforge
 
 Block `phraseforge`: `image`, `hostname`, `bindAddr`, `ingest`, `llm_calls.retention_days`,
-`jobs.retention_days_done` and `retention_days_failed`, `secrets`, `models`, and the 14
+`jobs.retention_days_done` and `retention_days_failed`, `nats.url` (see "NATS" below), `secrets`,
+`models`, and the 14
 purposes (`transcription`, `translation`, `title`, `processText`, `processDialog`,
 `generateVocabulary`, `generateModels`, `vocabularyItem`, `modelsItem`, `checkVocabulary`,
 `reviewVocabulary`, `reviewModels`, `reviewTranscription`, `reviewTranslation`), each with
@@ -124,6 +127,23 @@ purposes (`transcription`, `translation`, `title`, `processText`, `processDialog
 purpose is stated explicitly: one that is missing from `values.yaml` or the template runs on
 the image's default. An Ollama model that matches a purpose must have `options.num_ctx` of at
 least the purpose's `numCtx`. The pod reads the config at startup: restart it after a change.
+
+### NATS
+
+`knowledge.nats.url`, `phraseforge.nats.url` and `assistant.nats.url` let each app call or
+answer the other apps over NATS. The default is the production NATS, the headless Service
+`jdp-data-nats` in the `data` namespace (`nats://jdp-data-nats.data.svc.cluster.local:4222`).
+An empty value disables it: the app never connects, and the chart renders no key or variable.
+
+- knowledge and phraseforge: rendered as `nats:` / `url:` in `config.yaml` (env override
+  `KNOWLEDGE_NATS_URL`, `PHRASEFORGE_NATS_URL`). The assistant has no config file: the chart
+  sets `ASSISTANT_NATS_URL` in the Deployment.
+- Older images reject a `nats` key in `config.yaml` (knowledge before 2026.10.3, phraseforge before
+  2026.10.13), so the chart renders that block only for an image tag from those releases on; with an
+  older tag the app simply runs without NATS. If the release you deploy is numbered differently,
+  change the `semverCompare` threshold in `templates/knowledge.yaml` or `templates/phraseforge.yaml`.
+- Nothing authenticates a sender: any pod that can reach NATS can send a message to an app.
+  The `frontend` namespace needs network access to `data`, port 4222.
 
 ## Known gaps
 

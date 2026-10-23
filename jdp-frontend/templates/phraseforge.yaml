@@ -79,6 +79,12 @@ data:
       maxContentBytes: {{ .Values.phraseforge.ingest.maxContentBytes }}
     llm_calls:
       retention_days: {{ .Values.phraseforge.llm_calls.retention_days }}
+{{- /* Images before 2026.10.13 reject a nats key in config.yaml (unknown key): render it only for a CalVer tag from 2026.10.13 on (or a tag that is not CalVer). */}}
+{{- $phraseforgeTag := splitList ":" .Values.phraseforge.image | last }}
+{{- if and .Values.phraseforge.nats.url (or (not (regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+$" $phraseforgeTag)) (semverCompare ">=2026.10.13" $phraseforgeTag)) }}
+    nats:
+      url: {{ .Values.phraseforge.nats.url | quote }}
+{{- end }}
     jobs:
       retention_days_done: {{ .Values.phraseforge.jobs.retention_days_done }}
       retention_days_failed: {{ .Values.phraseforge.jobs.retention_days_failed }}
