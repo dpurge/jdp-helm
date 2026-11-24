@@ -1,3 +1,7 @@
+anki:
+  image: jeankhawand/anki-sync-server:26.08-distroless
+  hostname: anki.home.arpa
+
 pgadmin:
   image: dpage/pgadmin4:9.11.0
   hostname: pgadmin.home.arpa

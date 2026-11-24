@@ -1,6 +1,11 @@
 {{/*
 Fully qualified resource name for each app in this chart, e.g. "jdp-frontend-phraseforge".
 */}}
+
+{{- define "anki.fullname" -}}
+{{ .Chart.Name }}-anki
+{{- end -}}
+
 {{- define "pgadmin.fullname" -}}
 {{ .Chart.Name }}-pgadmin
 {{- end -}}
